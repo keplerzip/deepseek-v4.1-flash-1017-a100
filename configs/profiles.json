@@ -1,0 +1,44 @@
+{
+  "default": "baseline",
+  "constraints": {"global_concurrency": 32, "context": 524288, "native_vision_tokens": 1024, "served_model_name": "DeepSeek-Flash"},
+  "base_environment": {
+    "VLLM_DETERMINISTIC_MOE_ALIGN": "1",
+    "VLLM_AMPERE_DENSE_BF16_MIN_TOKENS": "32",
+    "VLLM_DSV41_CAPTURE_CONTEXT_COMBINE": "0"
+  },
+  "profiles": {
+    "baseline": {"description": "R1 compute settings with the fixed DeepSeek-Flash API name; comparison baseline", "config": {}, "environment": {}, "gates": []},
+    "tp8-quiet-eplb": {
+      "description": "Disable balancedness logging and its extra counters/synchronization; retain the original EPLB window and rebalancing",
+      "config": {"eplb_config": {"log_balancedness": false}}, "environment": {}, "gates": []
+    },
+    "tp8-fast-align": {
+      "description": "Compare the native atomic MoE alignment with our already fused stable alignment; gain unknown",
+      "config": {}, "environment": {"VLLM_DETERMINISTIC_MOE_ALIGN": "0"}, "gates": []
+    },
+    "tp8-custom-ar": {
+      "description": "Enable the existing TP custom AllReduce; separate from the already enabled EP AG/RS path",
+      "config": {"disable_custom_all_reduce": false}, "environment": {}, "gates": ["tp-ar"]
+    },
+    "tp8-context-graph": {
+      "description": "Capture DSpark auxiliary-state combination/main_proj in the FULL draft graph, backported from vLLM PR59511",
+      "config": {}, "environment": {"VLLM_DSV41_CAPTURE_CONTEXT_COMBINE": "1"}, "gates": ["context-graph"]
+    },
+    "tp4-dp2": {
+      "description": "Topology comparison: TP4/DP2/EP8, exactly C32 globally, with independent capacity checks for both pools",
+      "config": {"tensor_parallel_size": 4, "data_parallel_size": 2, "data_parallel_size_local": 2, "max_num_seqs": 16,
+        "compilation_config": {"cudagraph_capture_sizes": [5, 6, 10, 12, 20, 24, 40, 48, 80, 96], "max_cudagraph_capture_size": 96}},
+      "environment": {}, "gates": []
+    },
+    "tp8-batch2048": {
+      "description": "Smaller prefill chunks for mixed long-prefill/decode traffic; original full image spans remain enabled",
+      "config": {"max_num_batched_tokens": 2048}, "environment": {}, "gates": []
+    },
+    "tp8-fast-candidate": {
+      "description": "Combined candidate, only after single-variable comparisons and all GPU/functionality gates; no claimed TPS gain",
+      "config": {"disable_custom_all_reduce": false, "eplb_config": {"log_balancedness": false}},
+      "environment": {"VLLM_DETERMINISTIC_MOE_ALIGN": "0", "VLLM_DSV41_CAPTURE_CONTEXT_COMBINE": "1"},
+      "gates": ["tp-ar", "context-graph"]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "id": "1017-encoding-and-tool-media-order",
+  "reference": {
+    "source": "ModelScope",
+    "revision": "f04a978641fa9bfe6f448ec5da3b2e1c2520a6ad",
+    "path": "encoding/encoding.py",
+    "sha256": "13231c592e958fb39e2af6001dae69d90e7a36b265702b9b390236fb387599e2"
+  },
+  "files": [
+    {
+      "path": "vllm/tokenizers/deepseek_v41_encoding.py",
+      "base_sha256": "e8429020c03efddbc34d2b5aa1d21c919e46d5936e93736d9c63a2c21171ff6f",
+      "patched_sha256": "7f9b5ce8328fa2555b5313009db4d46506cd84ae9a03fb252ab7939a611ca728"
+    },
+    {
+      "path": "vllm/renderers/deepseek_v4.py",
+      "base_sha256": "b989ea4b4240df0f5eeb832942d1aaa8e72e56743b45186b1b6145d7e7bbbd3a",
+      "patched_sha256": "d3f06cdc0308445ff7d38392aedbb9ccb2227136ec3f09b4d22a8bfccd96b23a"
+    }
+  ],
+  "scope": "1017 text tool-turn semantics and ordering contiguous tool replies before both media collection and tokenizer; retains R1.9 wrapper behavior",
+  "gpu_validated": false
+}

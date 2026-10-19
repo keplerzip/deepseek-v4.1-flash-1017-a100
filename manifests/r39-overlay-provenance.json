@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "id": "1017-r39-protocol-compat-v2",
+  "model": "DeepSeek-Flash",
+  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated.",
+  "native_image_tag": "deepseek-v4.1-flash-1017-a100:20261018-r2",
+  "native_image_id": "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
+  "native_image_allowed_ids": [
+    "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
+    "sha256:b89ad3acbbb21b98993284167bb838f966d393ad158d8d218afdc00b7f6a2f20",
+    "sha256:fc91b6843bba21cee966f6e5f42def56cc72ca513a5faf5de001738f40a1dd40"
+  ],
+  "files": [
+    {
+      "path": "vllm/tokenizers/deepseek_v41.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/tokenizers/deepseek_v41.py",
+      "overlay_path": "source/r39-overlay/vllm/tokenizers/deepseek_v41.py",
+      "base_sha256": "ec2645dc38f2ba5a2997ab8e41df4295cf9f50a8a32106fc3f82597f51ec2fff",
+      "patched_sha256": "f4fe7acbd32ce7e2122a02bab3cfaf5dc04446d2a89907a46045b8c9d28c121e"
+    },
+    {
+      "path": "vllm/entrypoints/anthropic/serving.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/anthropic/serving.py",
+      "overlay_path": "source/r39-overlay/vllm/entrypoints/anthropic/serving.py",
+      "base_sha256": "9d495a052227537bc698956f384e4caf861f942407481a53ecb8f93fbb82f657",
+      "patched_sha256": "f1a862299698f163e824fd5793d3f587e28b7cd98d4189a83b8b4141f3d32b3e"
+    },
+    {
+      "path": "vllm/entrypoints/openai/responses/protocol.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/responses/protocol.py",
+      "overlay_path": "source/r39-overlay/vllm/entrypoints/openai/responses/protocol.py",
+      "base_sha256": "95608b698c923f92e8494a98d4db92ca1fdbdde11b4aad4181c8e6eabb36585e",
+      "patched_sha256": "29d332975bae8e69631fa24394b48c7e5dd2d0cc404dc565724705a68123f89f"
+    },
+    {
+      "path": "dsv41_guard.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/dsv41_guard.py",
+      "overlay_path": "source/r39-overlay/dsv41_guard.py",
+      "base_sha256": "dd4f8d97b0288890e215039829654111bf20e06250fc816390b63437127a5545",
+      "patched_sha256": "d2e3c93192743ff6b7fff19a4c1d5abf3db179b2782095b2550f32291fb89602"
+    }
+  ],
+  "reference_sources": [
+    {
+      "path": "reference/r39-protocol-overlay/vllm/entrypoints/anthropic/serving.py",
+      "sha256": "47f14327db65d5494ca155ce5c2b98e9fb652beb071ac887b0f27fc1add9cc24",
+      "adopted": "_convert_user_tool_result; inline-tokenizer capability decision adapted to native 1017 handler that already keeps trailing system when merge=False"
+    },
+    {
+      "path": "reference/r39-protocol-overlay/vllm/entrypoints/openai/responses/protocol.py",
+      "sha256": "7ad877981a742514e43bf09491608f55c61fbfcc1aab103afb07fdc2337984a9",
+      "adopted": "_default_input_image_details and per-input-item BeforeValidator"
+    }
+  ],
+  "gpu_validated": false,
+  "newapi_billing_end_to_end": "NOT_RUN"
+}

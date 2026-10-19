@@ -1,0 +1,32 @@
+{
+  "id": "20261018-dspark-context-combine-capture",
+  "enable_env": "VLLM_DSV41_CAPTURE_CONTEXT_COMBINE=1",
+  "default_enabled": false,
+  "upstream_pr": "https://github.com/vllm-project/vllm/pull/59511",
+  "upstream_merge": "388a610dfb5f462261cc1ec27bc2e3bebc0249ca",
+  "gpu_validated": false,
+  "files": [
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/dflash/speculator.py",
+      "baseline_source": "upstream/r19-base-speculator.py",
+      "base_sha256": "724b3fc415a5f00f2149fa6615922adc443f85dc910b88cc9f7e61431f8c9b11",
+      "patched_sha256": "e9a41dee1d7d6a577787674c0fc557667bf2c2716bd0a53fa969cc3b3b5e45d0"
+    },
+    {
+      "path": "dsv41_capacity.py",
+      "baseline_source": "upstream/r1-dsv41_capacity.py",
+      "base_sha256": "eb01c650ca4ed5ef71649e6a4a0aabd9513cfa04fcd1a107257ea89d02cfde2b",
+      "patched_sha256": "7d7f39ab66df9baa355891ec627b454f13f3e298e7da37801fd9b45cbf11d4f5"
+    }
+  ],
+  "upstream_sources": [
+    {
+      "file": "upstream/59511.diff",
+      "sha256": "0ac4b0c0facdead96ae2dd69141e753570ba2202979889cf261f50ba2441419d"
+    },
+    {
+      "file": "upstream/merged-speculator.py",
+      "sha256": "0ddddfd4470d8aa6b85592f2170627854b1e995d0656447cce4a24180d6088b5"
+    }
+  ]
+}

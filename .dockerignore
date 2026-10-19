@@ -1,0 +1,12 @@
+*
+!build/
+!build/image/
+!build/image/**
+!configs/
+!configs/**
+!manifests/
+!manifests/model-files.json
+!scripts/
+!scripts/**
+!tests/
+!tests/**

@@ -1,0 +1,570 @@
+{
+  "schema": 1,
+  "record_status": "USER_REPORTED_PASS",
+  "performance_date_local": "2026-10-19",
+  "timezone": "Asia/Shanghai",
+  "run_id": "a100-validation-20261019",
+  "provenance": {
+    "source": "User-provided OCR transcription of the target A100 one-click summary in this conversation",
+    "reported_overall_status": "PASS",
+    "reported_configuration_check": "PASS",
+    "original_summary_json_received": false,
+    "original_reports_json_received": false,
+    "independently_reproduced_on_builder": false,
+    "builder_has_gpu": false,
+    "precision": "Values retain the displayed OCR summary precision; original counters and full-precision samples were not inferred.",
+    "normalizations": [
+      "DSparkk5 standardized to DSpark k5",
+      "OCR ima qe/imaqe standardized to image in the known test identifier",
+      "Merged model-directory/32-window statement split at the known directory name",
+      "OCR table separator I standardized to |; None retained as null/not applicable."
+    ],
+    "hardware_source": "Earlier user-provided target hardware probe; benchmark values from this final OCR summary",
+    "original_run_id_omitted": true
+  },
+  "target_hardware": {
+    "gpu_count": 8,
+    "gpu_model": "NVIDIA A100-SXM4-80GB",
+    "memory_mib_per_gpu": 81920,
+    "driver": "580.159.04",
+    "mig": "Disabled",
+    "topology": "NV12 / NVSwitch",
+    "logical_cpu_count": 128,
+    "host_memory_bytes": 2151674245120
+  },
+  "configuration": {
+    "served_model_name": "DeepSeek-Flash",
+    "model": "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+    "model_source": "ModelScope",
+    "tensor_parallel_size": 8,
+    "data_parallel_size": 1,
+    "expert_parallel_size": 8,
+    "pipeline_parallel_size": 1,
+    "global_concurrency": 32,
+    "max_model_len": 524288,
+    "max_num_batched_tokens": 8192,
+    "vision": "original native text/image configuration",
+    "speculation_method": "dspark",
+    "num_speculative_tokens": 5,
+    "api_port": 8005,
+    "api_authentication": "disabled for localhost and permitted Docker bridge clients"
+  },
+  "benchmark_definitions": {
+    "single_metrics": "Medians of formal C1 samples; warmups excluded.",
+    "single_decode": "(completion_tokens - first_batch_size) / (last_token_batch_arrival - first_token_batch_arrival); server token-ID/usage accounting; includes reasoning tokens.",
+    "single_e2e": "Completion tokens divided by request end-to-end wall time.",
+    "ttft": "Time to first streamed token batch; may be a reasoning token in high mode.",
+    "c32_aggregate": "All successful completion tokens / wall time of the entire C32 load phase, including queueing and prefill; not a single-request rate.",
+    "c32_latency_p95": "P95 of per-request end-to-end seconds, including queueing/prefill/decode/client overhead; not pure decode latency.",
+    "parameters_not_available_in_ocr": [
+      "warmups",
+      "single_samples",
+      "load_requests",
+      "output_tokens"
+    ],
+    "workload_scope": "Short input, fixed output budget; long-context retrieval tested separately."
+  },
+  "benchmarks": {
+    "off": {
+      "status": "PASS",
+      "single_decode_tokens_per_second_median": 155.52,
+      "single_e2e_tokens_per_second_median": 148.521,
+      "single_ttft_seconds_median": 0.294,
+      "c32_aggregate_tokens_per_second": 1318.582,
+      "c32_latency_p95_seconds": 34.615,
+      "c32_ttft_p95_seconds": 4.147
+    },
+    "high": {
+      "status": "PASS",
+      "single_decode_tokens_per_second_median": 148.733,
+      "single_e2e_tokens_per_second_median": 143.493,
+      "single_ttft_seconds_median": 0.262,
+      "c32_aggregate_tokens_per_second": 1282.933,
+      "c32_latency_p95_seconds": 30.772,
+      "c32_ttft_p95_seconds": 2.25
+    }
+  },
+  "diagnosis_definitions": {
+    "phase": "formal non-warmup C1 samples",
+    "timing_aggregation": "median",
+    "acceptance": "sum accepted draft tokens / sum proposed draft tokens over clean formal samples",
+    "accepted_per_draft": "sum accepted draft tokens / sum draft rounds; excludes any target-model bonus token",
+    "speculation_net_speedup_proven": false
+  },
+  "diagnostics": {
+    "code/high": {
+      "status": "PASS",
+      "clean_samples": 10,
+      "observed_samples": 10,
+      "decode_tps_median": 123.205,
+      "ttft_seconds_median": 0.225,
+      "reported_weighted_acceptance_rate": 0.3902,
+      "reported_accepted_per_draft": 1.951
+    },
+    "code/off": {
+      "status": "PASS",
+      "clean_samples": 10,
+      "observed_samples": 10,
+      "decode_tps_median": 177.04,
+      "ttft_seconds_median": 0.229,
+      "reported_weighted_acceptance_rate": 0.4838,
+      "reported_accepted_per_draft": 2.419
+    },
+    "text/high": {
+      "status": "PASS",
+      "clean_samples": 10,
+      "observed_samples": 10,
+      "decode_tps_median": 128.847,
+      "ttft_seconds_median": 0.236,
+      "reported_weighted_acceptance_rate": 0.3012,
+      "reported_accepted_per_draft": 1.506
+    },
+    "text/off": {
+      "status": "PASS",
+      "clean_samples": 10,
+      "observed_samples": 10,
+      "decode_tps_median": 136.036,
+      "ttft_seconds_median": 0.213,
+      "reported_weighted_acceptance_rate": 0.3192,
+      "reported_accepted_per_draft": 1.596
+    }
+  },
+  "functional_tests": {
+    "model-identity": {
+      "reported_status": "PASS"
+    },
+    "text-SSE-off": {
+      "reported_status": "PASS"
+    },
+    "text-SSE-high": {
+      "reported_status": "PASS"
+    },
+    "single-image-OCR": {
+      "reported_status": "PASS"
+    },
+    "multi-image-OCR": {
+      "reported_status": "PASS"
+    },
+    "reverse-tool-result-image-association": {
+      "reported_status": "PASS"
+    },
+    "prefix-cache-cold-hot-details": {
+      "reported_status": "PASS"
+    },
+    "C32-auto-tool-calls": {
+      "reported_status": "PASS"
+    },
+    "DSpark-native-k5-counters": {
+      "reported_status": "PASS"
+    }
+  },
+  "long_context": {
+    "reported_status": "PASS",
+    "retrieval_reported_status": "PASS",
+    "requested_context": 524288,
+    "actual_prompt_tokens": 523626,
+    "output_budget_tokens": 512,
+    "input_plus_output_budget": 524138,
+    "unused_context_budget_tokens": 150,
+    "ttft_seconds": 101.29,
+    "retrieval_positions": [
+      0,
+      0.25,
+      0.5,
+      0.75,
+      1
+    ],
+    "scope": "One near-full window; output budget is not an actual generated token count."
+  },
+  "r39_alignment": {
+    "reported_status": "PASS",
+    "required_cases": 37,
+    "cache_case_count": 23,
+    "vision_case_count": 14,
+    "cases": [
+      {
+        "name": "cache-chat-text-json",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-chat-text-sse",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-chat-image-json",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-chat-image-sse",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-responses-text-json",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-responses-text-sse",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-responses-image-json",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-responses-image-sse",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-messages-text-json",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-messages-text-sse",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-messages-image-json",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-messages-image-sse",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-chat-text-sse-implicit-usage",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 6528,
+        "multi_turn_cached_tokens": 6656
+      },
+      {
+        "name": "cache-chat-image-sse-implicit-usage",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-chat-changed-image-json",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-chat-changed-image-sse",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-responses-changed-image-json",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-responses-changed-image-sse",
+        "kind": "cache",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-messages-changed-image-json",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-messages-changed-image-sse",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 7168,
+        "multi_turn_cached_tokens": 7296
+      },
+      {
+        "name": "cache-messages-dynamic-tail-system-json",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 3200,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "cache-messages-dynamic-tail-system-sse",
+        "kind": "cache",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 3328,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "cache-chat-long-image-json",
+        "kind": "cache",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": 0,
+        "hot_cached_tokens": 80384,
+        "multi_turn_cached_tokens": 80512
+      },
+      {
+        "name": "vision-chat-ordered-5-json",
+        "kind": "vision",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-chat-ordered-8-sse",
+        "kind": "vision",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-ordered-5-json",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-ordered-8-sse",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-messages-ordered-5-json",
+        "kind": "vision",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-messages-ordered-8-sse",
+        "kind": "vision",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-chat-reversed-tool-image-id-json",
+        "kind": "vision",
+        "protocol": "chat",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-chat-reversed-tool-image-id-sse",
+        "kind": "vision",
+        "protocol": "chat",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-reversed-tool-image-id-json",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-reversed-tool-image-id-sse",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-messages-reversed-tool-image-id-json",
+        "kind": "vision",
+        "protocol": "messages",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-messages-reversed-tool-image-id-sse",
+        "kind": "vision",
+        "protocol": "messages",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-codex-view-image-json",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "json",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      },
+      {
+        "name": "vision-responses-codex-view-image-sse",
+        "kind": "vision",
+        "protocol": "responses",
+        "format": "sse",
+        "reported_status": "PASS",
+        "cold_cached_tokens": null,
+        "hot_cached_tokens": null,
+        "multi_turn_cached_tokens": null
+      }
+    ]
+  },
+  "boundaries": {
+    "full_window_c32_simultaneous_residency": "NOT_PROVEN",
+    "newapi_billing_end_to_end": "NOT_RUN",
+    "all_visual_tasks_quality_proven": false,
+    "maximum_999_images_load_test_proven": false,
+    "native_audio_or_video_validation": "NOT_CLAIMED",
+    "closed_speculation_ab_comparison": "NOT_RUN",
+    "sustained_production_sla": "NOT_CLAIMED"
+  },
+  "target_evidence_paths": {
+    "original_reports_received": false,
+    "original_summary_mentions_report_hashes": true
+  }
+}

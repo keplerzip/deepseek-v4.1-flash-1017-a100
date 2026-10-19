@@ -1,0 +1,321 @@
+{
+  "id": "20261015-perf6",
+  "base_commit": "a350766628514d597670d2a5217777fdee2ba7f4",
+  "upstream_prs": [
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/56633",
+      "commit": "5372e72a9884c141874465f0eb8054a4a81da6bb"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/56554",
+      "commit": "30118ba27d1d923bdd91f97d945528dcb4a862c1"
+    }
+  ],
+  "files": [
+    {
+      "path": "vllm/model_executor/kernels/mhc/dsv41_sm80.py",
+      "group": "mhc",
+      "base_sha256": null,
+      "patched_sha256": "a13a52573b1281ce972df7973dc624f8f1fd4171b9a94b26ba971da20270bd63"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/amd/vl_model.py",
+      "group": "vision",
+      "base_sha256": "7b9b65ebb9a3e466aed22b680618aa8b4556d97520690d00652fd5c65e10369c",
+      "patched_sha256": "6f3fcc8a5896432ef51f809348097e92c7782ab226adb5ecb32cdc599ce05af4"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/common/mm_preprocess.py",
+      "group": "vision",
+      "base_sha256": "4ce1a019d74b1933706432c8aa1c347be78882019f25a956599665cf6d105d63",
+      "patched_sha256": "fd7505b6a65c2c8ef4bc03da8139d92912ff21baf7e4326656164dcc226af7e8"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/nvidia/dspark.py",
+      "group": "mhc",
+      "base_sha256": "7645489aea921148c9bfb5a0b18e3f9073af1b10b0d51a7b70a881bd848038bf",
+      "patched_sha256": "796db7379bcc34d31f4aebcd77abe4ea260d5201d110d8d34f4c7127cfd76c1b",
+      "baseline_sha256": "93bbdbd1895aa71f43589a7140a856e0454671158db310516f33ae49d885ed0b"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/nvidia/model.py",
+      "group": "mhc",
+      "base_sha256": "83c22bcc4c45e37d6da6e69edd9c43188e1baf5c11d486714f650d2777878dfa",
+      "baseline_sha256": "47ff28d3279b61d2c5c6a2edc80ac74751f4c41d7a5b3afcf52819a0941d3423",
+      "patched_sha256": "597d0d6c00bfcb8d1ab4f703de185d709236b9decf009f7628c502c4404576a9"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/nvidia/vl_model.py",
+      "group": "vision",
+      "base_sha256": "ab698e56c83a345ea73e41359cab79b5e484ccfc116ed131347d50cdfe896251",
+      "patched_sha256": "a5a3f477225990946093092d4781db181b59b52102aff2e0e345e631973817f1"
+    },
+    {
+      "path": "vllm/transformers_utils/configs/deepseek_v41.py",
+      "group": "vision",
+      "base_sha256": "e0c7583efa9baa95302398daa61604e0f656ecf9f1b072c5715e5ed5a5c54599",
+      "patched_sha256": "260cc131e5607665fe830d0c80cd2a615391623357ee3ced3847956ad46cf621"
+    },
+    {
+      "path": "vllm/model_executor/layers/sparse_attn_indexer.py",
+      "group": "indexer",
+      "base_sha256": "fb063e263c21b2aed10abf23c3db0d68756a90973b8f3731e61cf3cb615bec3f",
+      "patched_sha256": "57673fae3551856fddec5111b4eb20193ca62a146225e17099a4466099b77d4f"
+    },
+    {
+      "path": "vllm/v1/attention/ops/mqa_logits_candidates_triton.py",
+      "group": "indexer",
+      "base_sha256": null,
+      "patched_sha256": "50ef8e3acece494950d373f237a8abafdf34a6cefd4de555f0854d54c4a5e379"
+    },
+    {
+      "path": "vllm/model_executor/layers/fused_moe/moe_align_block_size.py",
+      "group": "moe_align",
+      "base_sha256": "9b7159e7c97c0474f7274c6226d66271545f2b3a2aef5aa57149313aecbeed96",
+      "patched_sha256": "ba030058d9a1b3d6c866be47f36c607822487a5ce25c1ec8f1f4601f40e0e745"
+    },
+    {
+      "path": "vllm/model_executor/layers/fused_moe/stable_moe_align.py",
+      "group": "moe_align",
+      "base_sha256": null,
+      "patched_sha256": "fadc531b3bd92e1801c25c1759da7862ce32ad263b641f93351ae51fb9d597cf"
+    },
+    {
+      "path": "vllm/model_executor/kernels/linear/mxfp8/marlin.py",
+      "group": "r12",
+      "base_sha256": "881d5e8a15eb5968ebce7676590639de64ba88e50d0f6677b1a65f4dfe866a78",
+      "baseline_sha256": "881d5e8a15eb5968ebce7676590639de64ba88e50d0f6677b1a65f4dfe866a78",
+      "patched_sha256": "eae4def7c330fe383420e4bb18b66192908c372b5ae46da1cade4606d77513ae"
+    },
+    {
+      "path": "vllm/distributed/device_communicators/cuda_communicator.py",
+      "group": "r12",
+      "base_sha256": "5cc03bf9eb16e878a624034da4243944c6685e3ddb040cf10068510c0e6a441c",
+      "baseline_sha256": "5cc03bf9eb16e878a624034da4243944c6685e3ddb040cf10068510c0e6a441c",
+      "patched_sha256": "78828b9e7c53eca21700d595c865cf01cc4b6729d8f18344504affb3ee8cfba5"
+    },
+    {
+      "path": "vllm/model_executor/models/interfaces.py",
+      "group": "r12",
+      "base_sha256": "a83e8e36a3edc3b0674c3fc90de10aded461356b257b57694aa7b8c3c278eae9",
+      "baseline_sha256": "a83e8e36a3edc3b0674c3fc90de10aded461356b257b57694aa7b8c3c278eae9",
+      "patched_sha256": "6eb1927f1231e487271063a1afc52dd3b22a8ddb390ac7604d82b02e70097de9"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/dspark/utils.py",
+      "group": "r12",
+      "base_sha256": "a06265c413327f8524c0e4577eb4b094051256a6036f359edf5474ac1d3eb9fa",
+      "baseline_sha256": "a06265c413327f8524c0e4577eb4b094051256a6036f359edf5474ac1d3eb9fa",
+      "patched_sha256": "f4b11438b1e37003b91aa22a674a2ed0d133f766754442ed00f8629c1cde4cec"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/speculator.py",
+      "group": "r12",
+      "base_sha256": "559f79b178e8a2bbb2da7f01513cde799ca3b9a622d78bc2e02efc80e62b7db1",
+      "baseline_sha256": "559f79b178e8a2bbb2da7f01513cde799ca3b9a622d78bc2e02efc80e62b7db1",
+      "patched_sha256": "ade3d30e4be30450b6bfc1caa070857bc4d4703c96391f5fd96cd44093747174"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/autoregressive/speculator.py",
+      "group": "r12",
+      "base_sha256": "438ec608da8c3c3ade88fdf77b71ba12e38b2c20c37eea6b1c196bbe0815e94a",
+      "baseline_sha256": "438ec608da8c3c3ade88fdf77b71ba12e38b2c20c37eea6b1c196bbe0815e94a",
+      "patched_sha256": "d751cd3745e063861f636d7004b1a53ca614d137107b2ec92eb1a8fe0f696b37"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/dflash/speculator.py",
+      "group": "r12",
+      "base_sha256": "1484e9e69ae013c5e98f5c1d2f54f77678cf97c305d8fb259c8ba720b87296c5",
+      "baseline_sha256": "1484e9e69ae013c5e98f5c1d2f54f77678cf97c305d8fb259c8ba720b87296c5",
+      "patched_sha256": "724b3fc415a5f00f2149fa6615922adc443f85dc910b88cc9f7e61431f8c9b11"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/multi_module_mtp/speculator.py",
+      "group": "r12",
+      "base_sha256": "9a4e1b968ace8cada6dd1c3ada072777e373051b4a4e1cdc9112bebfb5804ca8",
+      "baseline_sha256": "9a4e1b968ace8cada6dd1c3ada072777e373051b4a4e1cdc9112bebfb5804ca8",
+      "patched_sha256": "d9d4735b9b33829332b0e845b6d3073b2f0436045ed693b25c6434f351644127"
+    },
+    {
+      "path": "vllm/model_executor/layers/fused_moe/runner/moe_runner.py",
+      "group": "r12",
+      "base_sha256": "505d2885b46216bb313b4e652fbecc96db63245971d7916ecf7dcd091b2486fc",
+      "baseline_sha256": "505d2885b46216bb313b4e652fbecc96db63245971d7916ecf7dcd091b2486fc",
+      "patched_sha256": "2cca00303a46c545642e3ac644f6bc86bfecb62a06a3b3cb2ecf99ca029850a5"
+    },
+    {
+      "path": "vllm/model_executor/layers/fused_moe/runner/shared_experts.py",
+      "group": "r12",
+      "base_sha256": "a56c38816238787d3337897fa7e6c94dbb1bf81edc7a5164ffa7bdcf8246c208",
+      "baseline_sha256": "a56c38816238787d3337897fa7e6c94dbb1bf81edc7a5164ffa7bdcf8246c208",
+      "patched_sha256": "c679bb54d66859fe22f083be9148866e69e834bfa3c143cf79c5d2ed36f8d3b2"
+    },
+    {
+      "path": "vllm/parser/deepseek_v41.py",
+      "group": "r12",
+      "base_sha256": "6efe632bedd5d529e12bd62323fb913edc31d2fb46b30296c12db85d18657b7b",
+      "baseline_sha256": "6efe632bedd5d529e12bd62323fb913edc31d2fb46b30296c12db85d18657b7b",
+      "patched_sha256": "fcdbdae66f267c681fdac01df550518897b8cfb99ae9a51de51c1d7872ce8fda"
+    },
+    {
+      "path": "vllm/v1/attention/ops/rocm_aiter_mla_sparse.py",
+      "group": "r12",
+      "base_sha256": "72ecfe633dd70ce7ea0f75bef45a78aa618a9d79194a9c3b58040fc2eebf9711",
+      "baseline_sha256": "72ecfe633dd70ce7ea0f75bef45a78aa618a9d79194a9c3b58040fc2eebf9711",
+      "patched_sha256": "875eaa80630f59d18c8378a78eec105ea096c4ef662b57828ddba6bef10420d4"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/eplb_utils.py",
+      "group": "r12",
+      "base_sha256": "1829fac11464aed4649179b302df198de51b95d0589f4e56bea305a876a63e26",
+      "baseline_sha256": "1829fac11464aed4649179b302df198de51b95d0589f4e56bea305a876a63e26",
+      "patched_sha256": "c03c4c3cd14c94873ac08eb25c22ebd455c07091de7ca7cef4025574e2175bd8"
+    },
+    {
+      "path": "dsv41_capacity.py",
+      "group": "r12",
+      "base_sha256": "b1dbf9c0c88b430301f25c254ace6a1bb1bc8da5a84523e3fe1ee71ffccf7b92",
+      "baseline_sha256": "b1dbf9c0c88b430301f25c254ace6a1bb1bc8da5a84523e3fe1ee71ffccf7b92",
+      "patched_sha256": "6437fe5154800e0eec9a5bf1102ce86df42b5217be53f6c86164f23fc36410a9"
+    },
+    {
+      "path": "vllm/entrypoints/openai/responses/serving.py",
+      "group": "r12",
+      "base_sha256": "dc720ca7038f73581f5576b0c5c56e086167fea3323f29f2d76bbacdb5b5b6db",
+      "baseline_sha256": "dc720ca7038f73581f5576b0c5c56e086167fea3323f29f2d76bbacdb5b5b6db",
+      "patched_sha256": "d9751fbfd5e73ad0fdda15087640caf1ecaaefb2ef26d87e81c3cd070655048d"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/amd/rocm.py",
+      "group": "decode_metadata",
+      "base_sha256": "b74d9d75b29b81530b0f458f7d87d80bc6907949f4b94d22b70c649f9b521bea",
+      "baseline_sha256": "160dd9b8d8796f74205da2083edd7f56f8183d481d88850a728ce5072ffed10f",
+      "patched_sha256": "69fa464c390ad15c60cc364faddfcaf21a1760aec2069b1355486a4a42f81ea3"
+    },
+    {
+      "path": "vllm/v1/attention/backends/mla/indexer.py",
+      "group": "decode_metadata",
+      "base_sha256": "b2b4ddb0cdb1368647329e848123c628d64d8ef67493cc7772d1754d75755e92",
+      "baseline_sha256": "b2b4ddb0cdb1368647329e848123c628d64d8ef67493cc7772d1754d75755e92",
+      "patched_sha256": "e19319c180ffd64c139f2e38c53acb89db34a69b88600e350c8ff7296a43d0f1"
+    },
+    {
+      "path": "vllm/v1/attention/backends/mla/sparse_swa.py",
+      "group": "decode_metadata",
+      "base_sha256": "15db794abea3be63f610ad210f2fd215d8dee4d596cd47027b7edf698439c206",
+      "baseline_sha256": "15db794abea3be63f610ad210f2fd215d8dee4d596cd47027b7edf698439c206",
+      "patched_sha256": "b2a87a6a91831b7f34df4d502dd7e088f7b9b89e92e5942ccd59ef925b5b19bc"
+    },
+    {
+      "path": "vllm/models/deepseek_v4_1/attention.py",
+      "group": "r19",
+      "base_sha256": "991af78c9eda16a0f829ecba57397b2a434335dfecbbd93fff1dc40cbbb92698",
+      "baseline_sha256": "991af78c9eda16a0f829ecba57397b2a434335dfecbbd93fff1dc40cbbb92698",
+      "patched_sha256": "1dcbfc69f3d80a742038cc305cc829e4c2eed5cc7a6c53d77e3b45eb039c4228"
+    },
+    {
+      "path": "vllm/v1/worker/gpu/spec_decode/dflash/cudagraph.py",
+      "group": "r19",
+      "base_sha256": "beab567ae2df6a2ba2cd92fe7ee452c6b959b8a7037a4b5f493993a1824619bb",
+      "baseline_sha256": "beab567ae2df6a2ba2cd92fe7ee452c6b959b8a7037a4b5f493993a1824619bb",
+      "patched_sha256": "bd13cb2a7289b63074c8c8fe3f2a9fda15c21c5fbb76e363aba9ba0d2d77c690"
+    },
+    {
+      "path": "vllm/v1/core/sched/scheduler.py",
+      "group": "r19",
+      "base_sha256": "5ef33e44cebc274bca239cc4337ad1370298fd369660b025ca98eec48c4cc015",
+      "baseline_sha256": "5ef33e44cebc274bca239cc4337ad1370298fd369660b025ca98eec48c4cc015",
+      "patched_sha256": "d62c42b26ca6c7a12a6b24515fbe16f8973c0b1db9159dee71de573343555841"
+    }
+  ],
+  "gpu_validated": false,
+  "release": "1.9.0",
+  "upstream_sources": [
+    {
+      "url": "https://github.com/Zanooda/deepseek-v4.1-flash-cmp170hx",
+      "commit": "2445d7db07a2023f1d0a4bbb5b1ee4154b299590",
+      "component": "compact candidate-only indexer"
+    },
+    {
+      "url": "https://github.com/Tokha233/deepseek-v4.1-flash-a100-turbo",
+      "commit": "fae324ae62ac5cef31b7d38f5d369618e1cae1fa",
+      "component": "fused stable MoE alignment"
+    },
+    {
+      "url": "https://github.com/Tokha233/deepseek-v4.1-flash-a100-turbo",
+      "commit": "fae324ae62ac5cef31b7d38f5d369618e1cae1fa",
+      "r12": true,
+      "component": "dense BF16, EP8 collectives, DP draft metadata, EPLB draft isolation"
+    },
+    {
+      "url": "https://github.com/wtdcode/vllm-backport",
+      "r12": true,
+      "commit": "a5bb095f0b97d513ac0c657c2c481334e9302ad8",
+      "component": "8-warp sparse decode"
+    },
+    {
+      "url": "https://github.com/wtdcode/vllm-backport",
+      "r12": true,
+      "commit": "9925c45ab4c0740dfc8e77b4715f665e8b205447",
+      "component": "CUDA shared-expert overlap"
+    },
+    {
+      "url": "https://github.com/wtdcode/vllm-backport/pull/89",
+      "r12": true,
+      "commit": "19a4e635aa46e4e58342b836833c163c60af8552",
+      "component": "V4.1 DSML spelling variants; pinned comparison archived locally"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57627",
+      "commit": "f0defc90f6645242ee61bccecd6146f385cff4b7",
+      "r13": true,
+      "component": "stacked DSpark KV projection; SM80 merged loader and independent fallback"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57434",
+      "commit": "bea2fcdfcf2ef385db7b93352d98c7ee35739126",
+      "r13": true,
+      "component": "Ampere inherited ragged top-k reuse; additional buffer/geometry guards"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57885",
+      "commit": "73ce1d9220507a4d06412983e6cb599ed163eb43",
+      "r14": true,
+      "component": "persistent SWA validity output; prefill-only compressed lengths"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57860",
+      "commit": "2031422bfd952cc65fc1a46a9b570f6f04dc318d",
+      "r14": true,
+      "component": "fused ragged indptr/pack; local <=1024-row bound and empty-input handling"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57435",
+      "commit": "b1465b142c4c7cfc6c4d94ae34e45fa309cb9f31",
+      "r19": true,
+      "component": "inverse RoPE fused into sparse split attention reduction; SM80 port"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/57632",
+      "commit": "f2b00d1f989e62edb44a869a8786f4594b55e495",
+      "r19": true,
+      "component": "DSpark context KV projection inside draft CUDA Graph"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/60091",
+      "commit": "82c6eaf85e2217da1ce917f24f25abf7fb9dad04",
+      "r19": true,
+      "component": "explicit repeat_interleave output_size on inherited Ampere prefill"
+    },
+    {
+      "url": "https://github.com/vllm-project/vllm/pull/60874",
+      "commit": "fe1a30812d3451953ed578290667e069774d74df",
+      "r19": true,
+      "component": "indexer workspace bound adapted to original chunk builder"
+    }
+  ],
+  "local_r19_correctness_fixes": [
+    "atomic bidirectional image scheduling before encoder-cache shortcuts; exact-start and prefix-tail boundaries",
+    "PIL zero-dimension guard only for degenerate aspect ratios"
+  ]
+}

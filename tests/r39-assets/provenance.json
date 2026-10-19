@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "fixture_type": "synthetic PNGs reused from R3.9; no native-video claim",
+  "files": [
+    {
+      "path": "chart_before.png",
+      "bytes": 38669,
+      "sha256": "5b2faf2a01b88fc75b0daba4b978ea9fe3105ceea9f5978adde0b2b6c1849e74",
+      "source": "reference/r39/tests/multimodal/chart_before.png"
+    },
+    {
+      "path": "chart_after.png",
+      "bytes": 38513,
+      "sha256": "5d75e3de0e6b7cd16eb45c35a60476096d3bb89971d257ad52e61bdd31da0d5d",
+      "source": "reference/r39/tests/multimodal/chart_after.png"
+    },
+    {
+      "path": "video_frames/01.png",
+      "bytes": 5180,
+      "sha256": "ec1a915280c2554ff972512e44217f734a008089849001ea67cd317577873908",
+      "source": "reference/r39/tests/multimodal/video_frames/01.png"
+    },
+    {
+      "path": "video_frames/02.png",
+      "bytes": 7187,
+      "sha256": "e07f873d7b9f978086610fe7d91155925ed1205bb3cd0a74e39adc2822e1f16a",
+      "source": "reference/r39/tests/multimodal/video_frames/02.png"
+    },
+    {
+      "path": "video_frames/03.png",
+      "bytes": 7581,
+      "sha256": "564a5be348cdbaf0db1ecd6c732dcf17760c569381fc50650eb1120ccd04e630",
+      "source": "reference/r39/tests/multimodal/video_frames/03.png"
+    }
+  ],
+  "reference_sources": [
+    {
+      "source": "reference/r39/scripts/cache_probe.py",
+      "sha256": "bbc57d4550c43687906212687a533420aa6078898a3010361deb62fa06a45b07"
+    },
+    {
+      "source": "reference/r39/scripts/multi_image_probe.py",
+      "sha256": "6cc16cd6d762d72730b32777141c35e726aa0ef3455d6e2aa53e06ae45ce28ed"
+    },
+    {
+      "source": "reference/r39/scripts/codex_image_probe.py",
+      "sha256": "b8e12d339a458dff94345e200f31f3c0dd671d5f48e2f64372489244e78db93e"
+    },
+    {
+      "source": "reference/r39/NEWAPI.md",
+      "sha256": "54785d498e1d825aab6fd79c35d46b80529f3638fd75e342b28e83dec61afeb3"
+    }
+  ]
+}

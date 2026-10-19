@@ -1,0 +1,22 @@
+FROM deepseek-v4.1-flash-a100:20260913-r1
+COPY build/image/ /opt/dsv411017/image/
+RUN /usr/bin/python3 /opt/dsv411017/image/apply_overlay.py
+COPY configs/ /opt/dsv411017/configs/
+COPY manifests/ /opt/dsv411017/manifests/
+COPY scripts/ /opt/dsv411017/scripts/
+COPY tests/ /opt/dsv411017/tests/
+ENV HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 HF_DATASETS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1 VLLM_NO_USAGE_STATS=1 DO_NOT_TRACK=1 \
+    VLLM_USE_BREAKABLE_CUDAGRAPH=1 VLLM_USE_V2_MODEL_RUNNER=1 \
+    VLLM_DSPARK_FUSED_MARKOV=1 VLLM_DSV41_CAND_LOGITS=1 \
+    VLLM_FUSED_STABLE_MOE_ALIGN=1 VLLM_DSV41_STACKED_DRAFT_KV=1 \
+    VLLM_DSV41_REUSE_TOPK_RAGGED=1 VLLM_DSV41_FUSED_INV_ROPE=1 \
+    VLLM_DETERMINISTIC_MOE_ALIGN=1 VLLM_AMPERE_DENSE_BF16_MIN_TOKENS=32 \
+    VLLM_SM80_EP8_CUSTOM_AG_RS=1 VLLM_DISABLE_SHARED_EXPERTS_STREAM=0 \
+    DSV41_DP_SIZE=1 NCCL_IB_DISABLE=1 NCCL_SOCKET_IFNAME=lo GLOO_SOCKET_IFNAME=lo \
+    TOKENIZERS_PARALLELISM=false PYTHONDONTWRITEBYTECODE=1
+LABEL org.opencontainers.image.title="DeepSeek-V4.1-Flash-1017 A100 offline runtime" \
+      org.opencontainers.image.description="TP8 DP1 EP8 C32 524288 DSpark5; original ModelScope weights required" \
+      org.opencontainers.image.base.digest="sha256:29e46788ca2667042d06b496e92f6d38c7b50bee16f5b1d211e9229e68907403"
+ENTRYPOINT ["/usr/bin/python3", "/opt/dsv411017/scripts/runtime.py"]
+CMD ["serve"]

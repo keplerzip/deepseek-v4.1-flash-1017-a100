@@ -1,0 +1,25 @@
+DeepSeek-Flash API / DeepSeek-V4.1-Flash-1017 A100 offline deployment
+
+Deployment scripts and adaptations in this directory are Apache-2.0 licensed.
+This work reuses the existing deepseek-v4.1-flash-a100 R1.9 project at
+2265d0d233f3f6de5c018862c5bc6210a69adf41 and its reviewed performance overlay.
+
+Model: DeepSeek-AI, MIT license. Model weights and runtime images are not distributed in this source repository.
+See licenses/DeepSeek-LICENSE for the model license.
+https://modelscope.cn/models/deepseek-ai/DeepSeek-V4.1-Flash-1017
+
+Inference runtime: wtdcode/vllm-backport / lazymio SM80 adaptation, vLLM
+contributors, Apache-2.0. Base source a350766628514d597670d2a5217777fdee2ba7f4.
+https://github.com/wtdcode/vllm-backport
+https://github.com/vllm-project/vllm
+See build/image/vllm-LICENSE and original source-file notices.
+
+R2 includes an optional context-combine CUDA graph adaptation from vLLM PR59511,
+merge 388a610dfb5f462261cc1ec27bc2e3bebc0249ca, Apache-2.0.
+https://github.com/vllm-project/vllm/pull/59511
+It is disabled by default and requires separate target GPU acceptance.
+
+The runtime image includes third-party software under its respective licenses,
+including PyTorch, Triton, CUDA, NCCL and their dependencies. Their notices and
+license files remain in the inherited image. This deployment does not claim
+ownership of the upstream model or inference kernels.

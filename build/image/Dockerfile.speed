@@ -1,0 +1,12 @@
+FROM deepseek-v4.1-flash-1017-a100:20261018-r1
+COPY build/image/speed/ /opt/dsv411017/image/speed/
+COPY build/image/dsv41_guard.py /opt/dsv411017/image/dsv41_guard.py
+RUN /usr/bin/python3 /opt/dsv411017/image/speed/install.py --receipt /opt/dsv411017/image/speed-receipt.json \
+    && /usr/bin/python3 -c "import shutil,sysconfig; shutil.copyfile('/opt/dsv411017/image/dsv41_guard.py',sysconfig.get_paths()['purelib']+'/dsv41_guard.py')"
+COPY configs/ /opt/dsv411017/configs/
+COPY scripts/ /opt/dsv411017/scripts/
+COPY tests/ /opt/dsv411017/tests/
+ENV VLLM_DSV41_CAPTURE_CONTEXT_COMBINE=0 VLLM_HOST_IP=127.0.0.1
+LABEL org.opencontainers.image.title="DeepSeek-Flash / V4.1-Flash-1017 A100 R2 offline runtime" \
+      org.opencontainers.image.description="Fixed DeepSeek-Flash API; C32/524288/native vision with opt-in speed profiles" \
+      org.opencontainers.image.base.digest="sha256:10743e6faaa326f4049b4e661e172fc5be5346a50894242784b136131c9569ca"
