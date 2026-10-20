@@ -17,7 +17,7 @@ from vllm.platforms.cpu import CpuPlatform
 vllm.platforms._current_platform = CpuPlatform()
 from vllm.outputs import RequestOutput, CompletionOutput
 from vllm.logprobs import Logprob as SampleLogprob
-from vllm.sampling_params import SamplingParams
+from vllm.sampling_params import SamplingParams, RequestOutputKind
 from vllm.entrypoints.openai.responses.protocol import ResponsesRequest
 from vllm.entrypoints.openai.responses.context import SimpleContext
 from vllm.entrypoints.openai.responses.serving import OpenAIServingResponses
@@ -30,6 +30,17 @@ from vllm.entrypoints.serve.engine.protocol import ErrorResponse,ErrorInfo
 class StubTokenizer:
     def get_vocab(self): return {}
     def decode(self, token_ids, **kwargs): return ''
+
+
+class FixtureTokenizer:
+    """Publisher-tokenizer-derived fixed frames, not an alternate tokenizer."""
+    def __init__(self, fixture):
+        self.fixture = fixture
+        self.all_special_tokens = fixture['all_special_tokens']
+        self.all_special_ids = fixture['all_special_ids']
+    def get_vocab(self): return self.fixture['vocab']
+    def decode(self, token_ids, **kwargs):
+        return ''.join(self.fixture['decoded_tokens'][str(value)] for value in token_ids)
 
 
 FUNCTION = {'type':'function', 'name':'compatibility_probe_never_execute', 'parameters':{
@@ -71,13 +82,13 @@ def nonidentity(items):
     return result
 
 
-def make_fixture(case):
+def make_fixture(case, *, streaming_guard=True):
     thinking=case.get('thinking',False)
     with_probs=case.get('logprobs',False)
     request=ResponsesRequest(
         model='DeepSeek-Flash', input='SYNTHETIC protocol fixture',
         stream=True, store=True, include_reasoning=case.get('include_reasoning',True),
-        tools=case.get('tools',[]),
+        tools=case.get('tools',[]), max_output_tokens=4096,
         **({'include':['message.output_text.logprobs'],'top_logprobs':2} if with_probs else {}),
     )
     serving=object.__new__(OpenAIServingResponses)
@@ -95,23 +106,29 @@ def make_fixture(case):
         async def failed_full_generator(*args,**kwargs):
             return ErrorResponse(error=ErrorInfo(message='Synthetic final response error',type='server_error',code=500))
         serving.responses_full_generator=failed_full_generator
-    tokenizer=StubTokenizer()
+    if streaming_guard:
+        def forbid_full_reparse(*args, **kwargs):
+            raise AssertionError('Streaming must not invoke the independent full-output parser')
+        serving._make_response_output_items = forbid_full_reparse
+    tokenizer=FixtureTokenizer(case['_tokenizer_fixture']) if '_tokenizer_fixture' in case else StubTokenizer()
     context=SimpleContext(parser_cls=serving.parser,tokenizer=tokenizer,request=request,
                           chat_template_kwargs={'thinking':thinking,'reasoning_effort':'high' if thinking else 'none'})
-    params=SamplingParams(max_tokens=32,logprobs=2 if with_probs else None)
+    params=request.to_sampling_params(4096,{})
+    assert params.output_kind == RequestOutputKind.DELTA
     async def results():
         if case.get('error_before_output'):
             raise GenerationError('Synthetic engine failure before first output')
         for index,text in enumerate(case['chunks']):
             probs=[{100+index:SampleLogprob(logprob=-0.25-index,rank=1,decoded_token=text),
                     500+index:SampleLogprob(logprob=-2.25-index,rank=2,decoded_token='ALT')}]
+            frame_ids=case.get('chunk_token_ids',[[100+i] for i in range(len(case['chunks']))])[index]
             output=CompletionOutput(
-                index=0,text=text,token_ids=[100+index],cumulative_logprob=0.0,
+                index=0,text=text,token_ids=frame_ids,cumulative_logprob=0.0,
                 logprobs=probs if with_probs else None,
                 finish_reason=case.get('finish_reason','stop') if index==len(case['chunks'])-1 else None,
             )
             piece=RequestOutput(
-                request_id=request.request_id,prompt='SYNTHETIC',prompt_token_ids=[1,2],
+                request_id=request.request_id,prompt='SYNTHETIC',prompt_token_ids=case.get('prompt_token_ids',[1,2]),
                 prompt_logprobs=None,outputs=[output],finished=index==len(case['chunks'])-1,
                 num_cached_tokens=1,
             )
@@ -147,8 +164,8 @@ async def run_case(case, wires):
     expected_status='failed' if case.get('failure_code') else 'incomplete' if case.get('finish_reason')=='length' else 'completed'
     assert terminal['type']=='response.'+expected_status, 'Incorrect terminal event: '+terminal['type']
     assert final['status']==expected_status
-    expected_input=0 if case.get('error_before_output') else 2
-    expected_generated=0 if case.get('error_before_output') else len(case['chunks'])
+    expected_input=0 if case.get('error_before_output') else len(case.get('prompt_token_ids',[1,2]))
+    expected_generated=0 if case.get('error_before_output') else sum(len(ids) for ids in case.get('chunk_token_ids',[[100+i] for i in range(len(case['chunks']))]))
     assert final['usage']['input_tokens']==expected_input
     assert final['usage']['input_tokens_details']['cached_tokens']==(0 if case.get('error_before_output') else 1)
     assert final['usage']['output_tokens']==expected_generated
@@ -170,48 +187,62 @@ async def run_case(case, wires):
         assert not any(event['type']=='response.completed' for event in events)
     else:
         assert identities(done)==identities(final['output']), 'Done/terminal identities differ'
-        assert semantics(done)==semantics(final['output']), 'Done/terminal text or tool semantics differ'
+        assert done==final['output'], 'Done/terminal output fields differ'
+        if done:
+            assert done[-1]['status']==('incomplete' if expected_status=='incomplete' else 'completed')
         delta_text=''.join(event['delta'] for event in events if event['type']=='response.output_text.delta')
         assert delta_text==semantics(final['output'])['message']
         if 'expected_text' in case: assert delta_text==case['expected_text']
+        delta_reasoning=''.join(event['delta'] for event in events if event['type']=='response.reasoning_text.delta')
+        assert delta_reasoning==semantics(done)['reasoning'], 'Reasoning delta/done mismatch'
+        if 'expected_reasoning' in case: assert delta_reasoning==case['expected_reasoning']
         if not case.get('include_reasoning',True):
             assert all(item['type']!='reasoning' for item in done+final['output'])
         if expected_status=='incomplete':
             assert final['incomplete_details']['reason']=='max_output_tokens'
 
-        # Independent nonstream native response provides usage/metadata reference.
-        ref_request,ref_serving,ref_context,ref_params,ref_tokenizer,ref_results=make_fixture(case)
+        # The separate JSON path remains native. Its segmentation/whitespace
+        # is deliberately not a streaming acceptance oracle (upstream #59307).
+        ref_request,ref_serving,ref_context,ref_params,ref_tokenizer,ref_results=make_fixture(case,streaming_guard=False)
         ref=await ref_serving.responses_full_generator(
             ref_request,ref_params,ref_results(),ref_context,'DeepSeek-Flash',ref_tokenizer,None,created_time=1,
         )
         reference=ref.model_dump(mode='json',by_alias=True)
-        assert final['usage']==reference['usage']
+        for key in ['input_tokens','output_tokens','total_tokens','input_tokens_details']:
+            assert final['usage'][key]==reference['usage'][key], 'Native token/cache accounting changed'
         assert final['status']==reference['status']
         assert final['incomplete_details']==reference['incomplete_details']
-        assert semantics(final['output'])==semantics(reference['output'])
-        if [item['type'] for item in final['output']]==[item['type'] for item in reference['output']]:
-            assert nonidentity(final['output'])==nonidentity(reference['output']), 'Native metadata changed on ordinary path'
-        else:
-            function_index=0
-            for item in final['output']:
-                templates=[source for source in reference['output'] if source['type']==item['type']]
-                template=templates[function_index] if item['type']=='function_call' else templates[0]
-                if item['type']=='function_call': function_index+=1
-                wanted=copy.deepcopy(template)
-                wanted['id']=item['id']
-                if item['type']=='function_call':
-                    wanted['call_id']=item['call_id']
-                else:
-                    wanted['content'][0]['text']=item['content'][0]['text']
-                assert item==wanted, 'Segmented output discarded native metadata'
+        # Check observed per-message token probabilities, including bytes.
+        for item in done:
+            if item['type']!='message': continue
+            observed=[prob for event in events if event['type']=='response.output_text.delta'
+                      and event['item_id']==item['id'] for prob in event.get('logprobs',[])]
+            actual=[prob for part in item.get('content',[]) for prob in (part.get('logprobs') or [])]
+            assert len(actual)==len(observed), 'Lost or duplicated streamed logprobs'
+            for full,delta in zip(actual,observed):
+                assert full['token']==delta['token'] and full['logprob']==delta['logprob']
+                assert full['bytes']==list(delta['token'].encode('utf-8',errors='replace'))
+                assert len(full['top_logprobs'])==len(delta.get('top_logprobs') or [])
+                for full_top,delta_top in zip(full['top_logprobs'],delta.get('top_logprobs') or []):
+                    assert full_top['token']==delta_top['token'] and full_top['logprob']==delta_top['logprob']
+                    assert full_top['bytes']==list(delta_top['token'].encode('utf-8',errors='replace'))
+        if case.get('logprobs') and not case.get('include_reasoning',True):
+            assert not any(event.get('logprobs') for event in events)
         metadata_preserved=True
     calls=[item for item in final['output'] if item['type']=='function_call']
     if not case.get('failure_code'):
-        assert len(calls)==len(case.get('expected_tasks',[]))
-        for call,task in zip(calls,case.get('expected_tasks',[])):
-            assert call['name']==FUNCTION['name']
+        arguments=case.get('expected_arguments',[{'task':task} for task in case.get('expected_tasks',[])])
+        assert len(calls)==len(arguments)
+        for call,expected in zip(calls,arguments):
+            assert call['name']==case.get('function_name',FUNCTION['name'])
             assert call.get('namespace')==case.get('expected_namespace')
-            assert json.loads(call['arguments'])=={'task':task}
+            assert json.loads(call['arguments'])==expected
+            assert ''.join(event['delta'] for event in events if event['type']=='response.function_call_arguments.delta' and event['item_id']==call['id'])==call['arguments']
+            args_done=[event for event in events if event['type']=='response.function_call_arguments.done' and event['item_id']==call['id']]
+            assert len(args_done)==1 and args_done[0]['arguments']==call['arguments']
+        if calls and context.response_parser is not None:
+            native_ids=[slot.id for slot in context.response_parser._tool_slots if slot.name_sent]
+            assert [call['call_id'] for call in calls]==native_ids, 'Native parser call_id was replaced'
 
     # Run the real background event producer, then replay its terminal event.
     bg_request,bg_serving,bg_context,bg_params,bg_tokenizer,bg_results=make_fixture(case)
@@ -228,7 +259,8 @@ async def run_case(case, wires):
             'terminal_event_type':terminal['type'],'response_status':expected_status,
             'usage':final['usage'],'error':final.get('error'),'event_count':len(events),
             'output_types':[item['type'] for item in final['output']],
-            'native_nonidentity_metadata_preserved':metadata_preserved,
+            'stream_item_metadata_preserved':metadata_preserved,'second_full_parse_forbidden':not case.get('final_error_fixture'),
+            'fixture_tokenizer_sha256':case.get('_tokenizer_fixture',{}).get('tokenizer_sha256'),
             'stored_response_matches_terminal':True,'background_producer_and_replay_terminated':True,
             'wire_sha256':hashlib.sha256(wire.encode()).hexdigest()}
 
@@ -241,8 +273,9 @@ async def _collect_background(serving,request_id):
 def verify_sources(project):
     manifest=json.loads((project/'manifests/r39-overlay-provenance.json').read_text())
     required={'vllm/tokenizers/deepseek_v41.py','vllm/entrypoints/anthropic/serving.py',
-              'vllm/entrypoints/openai/responses/protocol.py','vllm/entrypoints/openai/responses/serving.py','dsv41_guard.py'}
-    assert len(manifest['files'])==5
+              'vllm/entrypoints/openai/responses/protocol.py','vllm/entrypoints/openai/responses/serving.py',
+              'vllm/entrypoints/openai/responses/context.py','vllm/entrypoints/openai/responses/streaming_events.py','dsv41_guard.py'}
+    assert len(manifest['files'])==7
     found=set()
     sources=[]
     for row in manifest['files']:
@@ -260,62 +293,23 @@ def verify_sources(project):
     return sources
 
 
-def logprob_segmentation_fixture():
-    """Unit-level metadata fixture complements native generator logprob cases."""
-    from openai.types.responses import ResponseOutputMessage,ResponseOutputText,ResponseReasoningItem
-    from openai.types.responses.response_reasoning_item import Content
-    from openai.types.responses.response_output_text import Logprob,LogprobTopLogprob
-    from vllm.entrypoints.openai.responses.serving import _reconcile_streamed_output
-    def probability(token,value):
-        return Logprob(token=token,logprob=value,bytes=list(token.encode()),top_logprobs=[
-            LogprobTopLogprob(token=token,logprob=value,bytes=list(token.encode()))])
-    probs=[probability('你好',-.5),probability('再见',-.7)]
-    native=[ResponseReasoningItem(id='native-r',type='reasoning',summary=[],status=None,
-                                  content=[Content(type='reasoning_text',text='一次二次')]),
-            ResponseOutputMessage(id='native-m',type='message',role='assistant',status='completed',
-                                  content=[ResponseOutputText(type='output_text',text='你好再见',annotations=[],logprobs=probs)])]
-    streamed=[ResponseReasoningItem(id='r1',type='reasoning',summary=[],status='completed',content=[Content(type='reasoning_text',text='一次')]),
-              ResponseOutputMessage(id='m1',type='message',role='assistant',status='completed',content=[ResponseOutputText(type='output_text',text='你好',annotations=[])]),
-              ResponseReasoningItem(id='r2',type='reasoning',summary=[],status='completed',content=[Content(type='reasoning_text',text='二次')]),
-              ResponseOutputMessage(id='m2',type='message',role='assistant',status='completed',content=[ResponseOutputText(type='output_text',text='再见',annotations=[])])]
-    before=[p.model_dump() for p in probs]
-    result=_reconcile_streamed_output(native,streamed,{'m1':[probs[0]],'m2':[probs[1]]})
-    messages=[item for item in result if item.type=='message']
-    after=[p.model_dump() for item in messages for p in item.content[0].logprobs]
-    assert before==after, 'Segmenting metadata duplicated or lost a native logprob'
-    assert [len(item.content[0].logprobs) for item in messages]==[1,1]
-    assert [item.id for item in result]==['r1','m1','r2','m2']
-    assert [item.status for item in result if item.type=='reasoning']==[None,None]
-    assert [p.model_dump() for p in native[1].content[0].logprobs]==before
-    # This is a unit fixture, not synthetic engine inference or App acceptance.
-    return {'name':'segmented-logprob-metadata-unit-fixture','status':'PASS','fixture':'metadata objects only',
-            'native_logprobs_preserved_exactly_once':True,'segment_counts':[1,1]}
-
-
-def reconciliation_guard_fixtures():
-    """Prove unsupported/ambiguous metadata returns a typed failure, not EOF."""
-    from openai.types.responses import ResponseOutputMessage,ResponseOutputText,ResponseOutputRefusal
-    from vllm.entrypoints.openai.responses.serving import _reconcile_streamed_output,_StreamReconciliationError
-    def message(identity,text=None):
-        return ResponseOutputMessage(id=identity,type='message',role='assistant',status='completed',content=(
-            [] if text is None else [ResponseOutputText(type='output_text',text=text,annotations=[])]))
-    refusals=ResponseOutputMessage(id='refusal',type='message',role='assistant',status='completed',
-                                  content=[ResponseOutputRefusal(type='refusal',refusal='Synthetic refusal')])
-    fixtures=[
-        ('missing-native-part',[message('n')],[message('s1',''),message('s2','')], 'missing_native_text_content_part'),
-        ('unsupported-refusal-part',[refusals],[message('s1','')], 'unsupported_text_content_part'),
-        ('same-types-different-boundaries',[message('n1','a'),message('n2','bc')],
-         [message('s1','ab'),message('s2','c')], 'ambiguous_native_text_segments'),
-        ('actual-text-mismatch',[message('n1','first')],[message('s1','second')], 'stream_final_semantic_mismatch'),
-    ]
-    checks=[]
-    for name,native,streamed,expected in fixtures:
-        try: _reconcile_streamed_output(native,streamed,{})
-        except _StreamReconciliationError as error:
-            assert error.code==expected
-        else: raise AssertionError('Invalid metadata was accepted: '+name)
-        checks.append({'name':name,'error_code':expected})
-    return {'name':'reconciliation-failure-guards-unit-fixtures','status':'PASS','fixture':'metadata objects only','guards':checks}
+def processor_zero_delta_fixture():
+    from vllm.entrypoints.generate.base.protocol import DeltaToolCall, DeltaFunctionCall
+    from vllm.entrypoints.openai.responses.streaming_events import SimpleStreamingEventProcessor, _StateType
+    processor=SimpleStreamingEventProcessor(tools=[])
+    call=DeltaToolCall(index=0,id='call_fixed_zero_args',type='function',
+                       function=DeltaFunctionCall(name='zero_args'))
+    opened=processor.open(_StateType.TOOL_CALL,call)
+    closed=processor.close_current()
+    done=[event for event in closed if event.type=='response.function_call_arguments.done']
+    assert len(done)==1 and done[0].arguments==''
+    assert closed[-1].type=='response.output_item.done'
+    assert closed[-1].item.call_id==call.id
+    assert opened[0].item.id==closed[-1].item.id
+    assert processor.output_items==[closed[-1].item]
+    return {'name':'zero-argument-done-without-delta','status':'PASS',
+            'fixture':'Native SimpleStreamingEventProcessor objects only; no engine/model inference',
+            'zero_argument_done_always_emitted':True,'native_call_id_preserved':True}
 
 
 async def main():
@@ -325,7 +319,7 @@ async def main():
     args=ap.parse_args()
     report={'scope':'Fixed R2 native parser/generator/SSE router CPU checks with synthetic engine deltas; explicitly identified metadata unit fixtures and final-error fault injection',
             'status':'RUNNING','gpu_executed':False,'network_used':False,'weights_loaded':False,
-            'real_inference_executed':False,'app_subagent_end_to_end':'NOT_RUN','current_target_failure_root_cause':'NOT_PROVEN',
+            'real_inference_executed':False,'app_subagent_end_to_end':'NOT_RUN','current_target_app_recovery':'NOT_RUN',
             'raw_model_or_reasoning_content_saved':False,'checks':[]}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     try: report['runtime_sources']=verify_sources(args.project)
@@ -340,6 +334,8 @@ async def main():
       {'name':'native-off-UTF8-greeting','chunks':['你好','，很高兴见到你！'],'expected_text':greeting},
       {'name':'native-high-reasoning-then-greeting','chunks':['先想一下','</think>',greeting],'thinking':True,'expected_text':greeting},
       {'name':'native-single-function','chunks':[tool()],'tools':[FUNCTION],'expected_tasks':['Greet']},
+      {'name':'native-zero-argument-function','chunks':['<｜DSML｜ calls><｜DSML｜ invoke name="'+FUNCTION['name']+'"></｜DSML｜ invoke></｜DSML｜ calls>'],
+       'tools':[dict(FUNCTION,parameters={'type':'object','properties':{}})],'expected_arguments':[{}]},
       {'name':'native-high-reasoning-hidden','chunks':['先想一下','</think>',greeting],'thinking':True,'include_reasoning':False,'expected_text':greeting},
       {'name':'native-reasoning-token-limit','chunks':['先想一下'],'thinking':True,'finish_reason':'length','expected_text':''},
       {'name':'native-two-functions-namespace','chunks':['<｜DSML｜ calls>',invocation('First',True),invocation('Second',True),'</｜DSML｜ calls>'],
@@ -357,12 +353,19 @@ async def main():
       {'name':'native-generation-error-before-output','chunks':[],'error_before_output':True,'failure_code':'generation_error'},
       {'name':'native-generation-error-after-partial-output','chunks':['想一下','</think>','可见部分','错误结束'],'thinking':True,'finish_reason':'error','failure_code':'generation_error'},
       {'name':'final-error-response-fault-injection','chunks':['固定输出'],'final_error_fixture':True,'failure_code':'final_generation_error'},
-      {'name':'segmented-logprobs-unprovable-native','chunks':repeated,'thinking':True,'logprobs':True,'failure_code':'segmented_logprobs_not_losslessly_alignable'},
+      {'name':'segmented-logprobs-stream-source','chunks':repeated,'thinking':True,'logprobs':True,'expected_text':'你好再见'},
+      {'name':'segmented-logprobs-hidden','chunks':repeated,'thinking':True,'logprobs':True,'include_reasoning':False,'expected_text':'你好再见'},
     ]
     for size in [1,7]:
         text=''.join(repeated)+tool()
         cases.append({'name':f'repeat-thinking-tool-fragment-{size}','chunks':[text[i:i+size] for i in range(0,len(text),size)],
                       'thinking':True,'tools':[FUNCTION],'expected_tasks':['Greet'],'expected_text':'你好再见'})
+    fixture=json.loads((args.project/'tests/fixtures/deepseek-v41-stream-token-cases.json').read_text())
+    assert fixture['schema']==1 and len(fixture['cases'])>=30
+    report['publisher_tokenizer_sha256']=fixture['tokenizer_sha256']
+    for case in fixture['cases']:
+        case['_tokenizer_fixture']=fixture
+        cases.append(case)
     wires={}
     for case in cases:
         try: row=await run_case(case,wires)
@@ -371,10 +374,8 @@ async def main():
         report['checks'].append(row)
         print(json.dumps({key:row[key] for key in ['name','status','terminal_event_type','error'] if key in row},ensure_ascii=False),flush=True)
         args.output.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
-    try: report['checks'].append(logprob_segmentation_fixture())
-    except Exception as e: report['checks'].append({'name':'segmented-logprob-metadata-unit-fixture','status':'FAIL','error':type(e).__name__+': '+str(e)})
-    try: report['checks'].append(reconciliation_guard_fixtures())
-    except Exception as e: report['checks'].append({'name':'reconciliation-failure-guards-unit-fixtures','status':'FAIL','error':type(e).__name__+': '+str(e)})
+    try: report['checks'].append(processor_zero_delta_fixture())
+    except Exception as e: report['checks'].append({'name':'zero-argument-done-without-delta','status':'FAIL','error':type(e).__name__+': '+str(e)})
     report['failed_cases']=sum(row['status']!='PASS' for row in report['checks'])
     report['status']='PASS' if not report['failed_cases'] else 'FAIL'
     args.output.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')

@@ -1,0 +1,141 @@
+{
+  "status": "PASS",
+  "schema": 1,
+  "scope": "Real local Codex CLI parent/spawn/child/wait and parent receipt using fixed synthetic model output through pinned publisher tokenizer and native V7 parser/generator/SSE code. This is not real-model or App acceptance.",
+  "cases": [
+    {
+      "case": "boundary",
+      "transport": "direct",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "18bf908e8c4f7df260de84f5f9fc5fe96bb21374240036b7bd0729aa353f727b"
+    },
+    {
+      "case": "arguments-wrapper",
+      "transport": "direct",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "9b6a7b742e591fb51161d08116ee8a6166cf56214718a23e5bf7e31495b42d9f"
+    },
+    {
+      "case": "input-wrapper",
+      "transport": "direct",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "1787fb3a1d1c4ea9d4e072ed87a67e8bf06c8392ccafb013af97c2d3a0a3ec79"
+    },
+    {
+      "case": "boundary",
+      "transport": "new-api-rc45",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "defd73fdd5b65b4ceae301263e484b797af986f0824deb3b806050cd18fb9bac"
+    },
+    {
+      "case": "arguments-wrapper",
+      "transport": "new-api-rc45",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "9fca6bc6fc98d108f1641df41bf50892a6a41b9e357e52a58d56224d88ba2a73"
+    },
+    {
+      "case": "input-wrapper",
+      "transport": "new-api-rc45",
+      "status": "PASS",
+      "actual_spawn_observed": true,
+      "actual_child_request_observed": true,
+      "actual_wait_completion_observed": true,
+      "parent_received_final_child_acknowledgement": true,
+      "requests": {
+        "parent": 3,
+        "child": 1
+      },
+      "cli_exit_code": 0,
+      "stream_errors": 0,
+      "private_evidence_sha256": "6a6b336945ba2b7ade1cc26e72320a6daefc2f2746d7dedd5430629a7ae26694"
+    }
+  ],
+  "cases_passed": 6,
+  "cases_failed": 0,
+  "source_sha256": {
+    "dsv41_guard.py": "5917aaac0806acb5c828b34b7b95b54f3da672445f36576c6b1eb7dc0b706f09",
+    "vllm/entrypoints/anthropic/serving.py": "9e140c2c9196b6b70da601a6690c7583409b025e3dd9c93402dd5f0161bc28bb",
+    "vllm/entrypoints/openai/responses/context.py": "06e5d566da2583ae3225758ca32534ae7f909e08a23b92ff0dfcdb24b26ca6c6",
+    "vllm/entrypoints/openai/responses/protocol.py": "29d332975bae8e69631fa24394b48c7e5dd2d0cc404dc565724705a68123f89f",
+    "vllm/entrypoints/openai/responses/serving.py": "713a97f950b12be1c758316e774be70d18063ce33344528c9b3387fd4f7c49f8",
+    "vllm/entrypoints/openai/responses/streaming_events.py": "591a680b1255466e783ce04eac176b28273754c0da895bc786ea8e48f616e057",
+    "vllm/tokenizers/deepseek_v41.py": "946e8f7c82aba8867f13a555af65499c4d270c9fd070e5724ba8c4deeb1ad106"
+  },
+  "cli": {
+    "version": "codex-cli 0.163.0",
+    "binary_sha256": "399ff69c431c066e40de318fba45c2b07f45a76b19939d247ee4828fc70c4215",
+    "user_configuration_read": false
+  },
+  "publisher_tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+  "runtime_image_id": "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
+  "gateway": {
+    "version": "v1.0.0-rc.45",
+    "image_id": "sha256:6c63c7ee9cd5bf7880df3984e99dd3ef07992d7a97538cfb2719adf9d87bc3f9",
+    "fresh_sqlite_database": true,
+    "network_mode": "none",
+    "published_ports": false,
+    "only_owned_fixture_container_removed": true
+  },
+  "external_network_available": false,
+  "real_model_inference": false,
+  "weights_read": false,
+  "gpu_used": false,
+  "actual_codex_app_acceptance": "NOT_RUN",
+  "actual_remote_a100_acceptance": "NOT_RUN",
+  "limitations": [
+    "Fixture output is predetermined; this proves protocol/client orchestration only, not model tool choice or task-following quality.",
+    "The CLI returns the child final assistant segment to its parent. Intermediate child assistant messages are not claimed as parent final content.",
+    "This isolated OpenAI Responses gateway channel does not establish behavior of unknown user gateway configuration."
+  ],
+  "private_evidence_index_sha256": "6ac169eb26d5ce9b90320c39ac2a5ce4e1068fec4754205764f9b6f633f95043"
+}

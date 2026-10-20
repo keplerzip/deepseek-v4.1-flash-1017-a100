@@ -9,7 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 HELPER = ROOT / 'scripts/r39_overlay.sh'
 PATHS = ['vllm/tokenizers/deepseek_v41.py', 'vllm/entrypoints/anthropic/serving.py',
          'vllm/entrypoints/openai/responses/protocol.py',
-         'vllm/entrypoints/openai/responses/serving.py', 'dsv41_guard.py']
+         'vllm/entrypoints/openai/responses/serving.py', 'dsv41_guard.py',
+         'vllm/entrypoints/openai/responses/context.py',
+         'vllm/entrypoints/openai/responses/streaming_events.py']
 
 
 class OverlayMountTests(unittest.TestCase):
@@ -34,16 +36,16 @@ class OverlayMountTests(unittest.TestCase):
             run=subprocess.run(['bash','-c','set -euo pipefail; source "$1"; prepare_r39_overlay "$2"; printf "%s\\0" "${R39_OVERLAY_ARGS[@]}"','bash',str(HELPER),directory],capture_output=True)
             return run
 
-    def test_all_five_mounts_are_read_only_with_space_in_path(self):
+    def test_all_seven_mounts_are_read_only_with_space_in_path(self):
         run=self.check_list(PATHS)
         self.assertEqual(run.returncode,0,run.stderr)
         values=run.stdout.decode().strip('\0').split('\0')
-        self.assertEqual(values[::2],['-v']*5)
+        self.assertEqual(values[::2],['-v']*7)
         self.assertTrue(all(value.endswith(':ro') for value in values[1::2]))
         self.assertTrue(all('/usr/local/lib/python3.12/dist-packages/' in value for value in values[1::2]))
 
     def test_duplicate_and_missing_path_rejected(self):
-        self.assertNotEqual(self.check_list([PATHS[0]]*5).returncode,0)
+        self.assertNotEqual(self.check_list([PATHS[0]]*7).returncode,0)
         self.assertNotEqual(self.check_list(PATHS[:-1]).returncode,0)
 
     def test_unknown_path_and_missing_source_rejected(self):

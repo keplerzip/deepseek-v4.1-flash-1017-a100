@@ -61,7 +61,7 @@ class Checker:
             result = dict(row, installed_sha256=actual)
             self.report['files'].append(result)
             rows.append(result)
-        require(len(rows) == 5, 'Exactly five reviewed overlays are required')
+        require(len(rows) == 7, 'Exactly seven reviewed overlays are required')
         require(all(row['installed_sha256'] == row['patched_sha256'] for row in rows),
                 'Installed files are not the exact reviewed protocol overlays')
         return {'installed_hashes_verified': len(rows)}

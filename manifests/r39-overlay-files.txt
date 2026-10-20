@@ -3,3 +3,5 @@ vllm/entrypoints/anthropic/serving.py
 vllm/entrypoints/openai/responses/protocol.py
 dsv41_guard.py
 vllm/entrypoints/openai/responses/serving.py
+vllm/entrypoints/openai/responses/context.py
+vllm/entrypoints/openai/responses/streaming_events.py

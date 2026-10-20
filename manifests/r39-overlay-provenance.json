@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "id": "1017-r39-protocol-compat-v6",
+  "id": "1017-r39-protocol-compat-v7",
   "model": "DeepSeek-Flash",
-  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated. V4 adds OpenAI/Codex reasoning effort aliases on the native 1-100 scale (minimal=25, medium=63, xhigh=90), preserves native low/high/max and explicit thinking-off, and forwards validated Claude enabled-thinking token budgets to the native sampler. No encoder, GPU kernel, serving configuration or usage accounting replacement. V6 preserves streamed item/call identities and native metadata, reconciles text-equivalent multiple thinking/content segments, and emits native response.failed with partial streamed output identities, usage and error details for actual failures. Length limits remain response.incomplete. No renderer, encoder, GPU kernel, usage accounting or access policy replacement.",
+  "scope": "Focused CPU API compatibility backports: preserve inline system turns for the official 1017 encoder, tool-result image/call-ID binding, image detail defaults, strict offline media validation, OpenAI/Codex effort aliases and validated Claude thinking budgets. V7 reuses streamed output items and native logprobs/call IDs following upstream PR 59307; only the Simple streaming last-item length status is adapted from PR 59324. No independent full-output parse is used to judge streaming completion. Native token usage, cache accounting, transfer metadata, storage, genuine failure terminal events and reasoning hiding remain in place. No renderer, encoder, GPU kernel, serving profile or access-policy replacement.",
   "native_image_tag": "deepseek-v4.1-flash-1017-a100:20261018-r2",
   "native_image_id": "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
   "native_image_allowed_ids": [
@@ -44,7 +44,21 @@
       "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/responses/serving.py",
       "overlay_path": "source/r39-overlay/vllm/entrypoints/openai/responses/serving.py",
       "base_sha256": "d9751fbfd5e73ad0fdda15087640caf1ecaaefb2ef26d87e81c3cd070655048d",
-      "patched_sha256": "a7e8c060294966bad85c4cca260330a392a0cdb761c47a3096bf565126bd33f8"
+      "patched_sha256": "713a97f950b12be1c758316e774be70d18063ce33344528c9b3387fd4f7c49f8"
+    },
+    {
+      "path": "vllm/entrypoints/openai/responses/context.py",
+      "overlay_path": "source/r39-overlay/vllm/entrypoints/openai/responses/context.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/responses/context.py",
+      "base_sha256": "558e208c2d55086e835278ece7ff6f49e59812710664e49b9c878db73a729355",
+      "patched_sha256": "06e5d566da2583ae3225758ca32534ae7f909e08a23b92ff0dfcdb24b26ca6c6"
+    },
+    {
+      "path": "vllm/entrypoints/openai/responses/streaming_events.py",
+      "overlay_path": "source/r39-overlay/vllm/entrypoints/openai/responses/streaming_events.py",
+      "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/responses/streaming_events.py",
+      "base_sha256": "f2681d82bdb1d041b3d78535db90b556d29c6474f790b783079c7ea156319017",
+      "patched_sha256": "591a680b1255466e783ce04eac176b28273754c0da895bc786ea8e48f616e057"
     }
   ],
   "reference_sources": [
@@ -60,5 +74,25 @@
     }
   ],
   "gpu_validated": false,
-  "newapi_billing_end_to_end": "NOT_RUN"
+  "newapi_billing_end_to_end": "NOT_RUN",
+  "upstream_backports": [
+    {
+      "pr": 59307,
+      "merge_commit": "7ca31ef5993dc4426d912f32b8eb3cd70fb7a078",
+      "scope": "Non-Harmony streamed output authority and dependencies"
+    },
+    {
+      "pr": 59324,
+      "merge_commit": "80dd705c1d422d04fcbd65d061dfedbf738ff573",
+      "scope": "Only Simple stream last-item length status"
+    }
+  ],
+  "local_mitigations": [
+    {
+      "scope": "Current DeepSeekV41 Responses parser instance only",
+      "behavior": "Use the existing native final argument converter at each invoke end instead of early unstable JSON prefixes",
+      "tradeoff": "Argument preview waits until invoke flush; text and reasoning still stream",
+      "upstream_merged_fix": false
+    }
+  ]
 }
