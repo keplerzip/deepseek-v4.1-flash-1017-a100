@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
 
 import asyncio
+import json
 import time
 from collections import deque
 from collections.abc import AsyncGenerator, AsyncIterator, Callable, Mapping, Sequence
@@ -11,7 +12,7 @@ from typing import Any, Final, cast
 
 from fastapi import Request
 from openai.types.responses import (
-    ResponseErrorEvent,
+    ResponseFailedEvent as OpenAIResponseFailedEvent,
     ResponseIncompleteEvent as OpenAIResponseIncompleteEvent,
     ResponseOutputItem,
     ResponseOutputMessage,
@@ -20,7 +21,6 @@ from openai.types.responses import (
     response_text_delta_event,
 )
 from openai.types.responses.response_output_text import Logprob, LogprobTopLogprob
-from pydantic import TypeAdapter
 
 from vllm import envs
 from vllm.config.utils import replace
@@ -95,11 +95,138 @@ class ResponseIncompleteEvent(OpenAIResponseIncompleteEvent):
     response: ResponsesResponse  # type: ignore[override]
 
 
+class ResponseFailedEvent(OpenAIResponseFailedEvent):
+    response: ResponsesResponse  # type: ignore[override]
+
+
 StreamingResponsesResponse = (
-    NativeStreamingResponsesResponse | ResponseIncompleteEvent | ResponseErrorEvent
+    NativeStreamingResponsesResponse | ResponseIncompleteEvent | ResponseFailedEvent
 )
 
 logger = init_logger(__name__)
+
+
+class _StreamReconciliationError(ValueError):
+    """A proven mismatch must end with response.failed, never fake completion."""
+    def __init__(self, code: str):
+        self.code = code
+        super().__init__("Responses stream reconciliation failed: " + code)
+
+
+def _final_logprob_from_delta(value) -> Logprob:
+    return Logprob(
+        token=value.token, logprob=value.logprob,
+        bytes=list(value.token.encode("utf-8", errors="replace")),
+        top_logprobs=[
+            LogprobTopLogprob(
+                token=top.token, logprob=top.logprob,
+                bytes=list(top.token.encode("utf-8", errors="replace")),
+            )
+            for top in value.top_logprobs
+        ],
+    )
+
+
+def _reconcile_streamed_output(native, streamed, streamed_logprobs):
+    """Keep stream identities and segmentation without discarding native metadata.
+
+    The native parser aggregates multiple reasoning/content segments when it
+    reparses the full output. Stream segments remain authoritative only after
+    every text character and ordered function call is proven equal.
+    """
+    def text(item):
+        parts = getattr(item, "content", None) or []
+        expected = "output_text" if item.type == "message" else "reasoning_text"
+        if any(getattr(part, "type", None) != expected or
+               not isinstance(getattr(part, "text", None), str) for part in parts):
+            raise _StreamReconciliationError("unsupported_text_content_part")
+        return "".join(part.text for part in parts)
+
+    def semantics(items):
+        result = {"message": "", "reasoning": "", "function_call": []}
+        for item in items:
+            if item.type in ("message", "reasoning"):
+                result[item.type] += text(item)
+            elif item.type == "function_call":
+                result[item.type].append(
+                    (item.name, getattr(item, "namespace", None), item.arguments)
+                )
+            else:
+                raise _StreamReconciliationError("unsupported_output_item_type")
+        return result
+
+    if semantics(native) != semantics(streamed):
+        raise _StreamReconciliationError("stream_final_semantic_mismatch")
+    if ([item.type for item in native] == [item.type for item in streamed] and
+            all(semantics([item]) == semantics([emitted])
+                for item, emitted in zip(native, streamed))):
+        # The ordinary path retains all native non-identity metadata unchanged.
+        for item, emitted in zip(native, streamed):
+            item.id = emitted.id
+            if item.type == "function_call":
+                item.call_id = emitted.call_id
+        return native
+
+    by_type = {kind: [item for item in native if item.type == kind]
+               for kind in ("message", "reasoning", "function_call")}
+    counts = {kind: sum(item.type == kind for item in streamed) for kind in by_type}
+    # An un-emitted native fallback message with no text is semantically empty.
+    # Reject hidden annotations/logprobs instead of silently dropping metadata.
+    for kind in ("message", "reasoning"):
+        if counts[kind] and len(by_type[kind]) != 1:
+            raise _StreamReconciliationError("ambiguous_native_text_segments")
+        for item in by_type[kind]:
+            parts = getattr(item, "content", None) or []
+            if len(parts) > 1:
+                raise _StreamReconciliationError("ambiguous_native_content_parts")
+            if counts[kind] and len(parts) != 1:
+                raise _StreamReconciliationError("missing_native_text_content_part")
+            if counts[kind] != 1:
+                if getattr(item, "summary", None):
+                    raise _StreamReconciliationError("unsplittable_native_summary")
+                for part in parts:
+                    if getattr(part, "annotations", None):
+                        raise _StreamReconciliationError("unsplittable_native_annotations")
+                    if not counts[kind] and getattr(part, "logprobs", None):
+                        raise _StreamReconciliationError("unemitted_native_logprobs")
+
+    logprob_segments = {}
+    if by_type["message"]:
+        native_part = (by_type["message"][0].content or [None])[0]
+        native_probs = getattr(native_part, "logprobs", None)
+        messages = [item for item in streamed if item.type == "message"]
+        observed = [value for item in messages for value in streamed_logprobs.get(item.id, [])]
+        if native_probs:
+            if [value.model_dump() for value in native_probs] != [value.model_dump() for value in observed]:
+                raise _StreamReconciliationError("segmented_logprobs_not_losslessly_alignable")
+            offset = 0
+            for item in messages:
+                count = len(streamed_logprobs.get(item.id, []))
+                logprob_segments[item.id] = native_probs[offset:offset + count]
+                offset += count
+            if offset != len(native_probs):
+                raise _StreamReconciliationError("segmented_logprobs_count_mismatch")
+        elif observed:
+            raise _StreamReconciliationError("native_logprobs_missing")
+
+    result = []
+    function_index = 0
+    for emitted in streamed:
+        if emitted.type == "function_call":
+            item = by_type["function_call"][function_index].model_copy(deep=True)
+            function_index += 1
+            item.id, item.call_id = emitted.id, emitted.call_id
+        else:
+            item = by_type[emitted.type][0].model_copy(deep=True)
+            item.id = emitted.id
+            part = item.content[0].model_copy(deep=True)
+            part.text = text(emitted)
+            if emitted.type == "message" and emitted.id in logprob_segments:
+                part.logprobs = logprob_segments[emitted.id]
+            item.content = [part]
+        result.append(item)
+    return result
+
 
 
 class OpenAIServingResponses(GenerateBaseServing):
@@ -1106,7 +1233,7 @@ class OpenAIServingResponses(GenerateBaseServing):
                 event = event_deque[current_index]
                 yield event
                 if getattr(event, "type", "unknown") in (
-                    "response.completed", "response.incomplete", "error"
+                    "response.completed", "response.incomplete", "response.failed", "error"
                 ):
                     return
                 current_index += 1
@@ -1306,6 +1433,57 @@ class OpenAIServingResponses(GenerateBaseServing):
 
         sequence_number = 0
         streamed_output: list[ResponseOutputItem] = []
+        streamed_logprobs: dict[str, list[Logprob]] = {}
+
+        def failure_response(message: str, response: ResponsesResponse | None = None):
+            if response is None:
+                usage = ResponseUsage(
+                    input_tokens=context.num_prompt_tokens,
+                    output_tokens=context.num_output_tokens,
+                    total_tokens=context.num_prompt_tokens + context.num_output_tokens,
+                    input_tokens_details=InputTokensDetails(
+                        cached_tokens=context.num_cached_tokens,
+                        input_tokens_per_turn=[turn.input_tokens for turn in context.all_turn_metrics],
+                        cached_tokens_per_turn=[turn.cached_input_tokens for turn in context.all_turn_metrics],
+                    ),
+                    output_tokens_details=OutputTokensDetails(
+                        reasoning_tokens=context.num_reasoning_tokens,
+                        tool_output_tokens=getattr(context, "num_tool_output_tokens", 0),
+                        output_tokens_per_turn=[turn.output_tokens for turn in context.all_turn_metrics],
+                        tool_output_tokens_per_turn=[turn.tool_output_tokens for turn in context.all_turn_metrics],
+                    ),
+                )
+                response = ResponsesResponse.from_request(
+                    request, sampling_params, model_name=model_name,
+                    created_time=created_time, output=streamed_output,
+                    status="failed", usage=usage,
+                )
+            # A failed reconciliation cannot invent fresh terminal item IDs.
+            # Retain only the partial items already emitted as done, plus the
+            # native response usage/metadata and a truthful failure reason.
+            response.output = list(streamed_output)
+            response.status = "failed"
+            response.incomplete_details = None
+            response.error = {"code": "server_error", "message": message}
+            return response
+
+        async def failed_event(message: str, code: str,
+                               response: ResponsesResponse | None = None):
+            native_count = len(response.output) if response is not None else 0
+            response = failure_response(message, response)
+            # Only request identity, item type counts and a fixed failure code.
+            logger.error(
+                "Responses stream failure request_id=%s code=%s native_items=%s streamed_items=%s",
+                request.request_id, code, native_count, len(streamed_output),
+            )
+            if request.store:
+                async with self.response_store_lock:
+                    stored = self.response_store.get(request.request_id)
+                    if stored is None or stored.status != "cancelled":
+                        self.response_store[request.request_id] = response
+            return ResponseFailedEvent(
+                type="response.failed", sequence_number=-1, response=response,
+            )
 
         def _increment_sequence_number_and_return(
             event: StreamingResponsesResponse,
@@ -1363,13 +1541,18 @@ class OpenAIServingResponses(GenerateBaseServing):
                     created_time,
                     _increment_sequence_number_and_return,
                 ):
+                    if getattr(event_data, "type", None) == "response.output_text.delta":
+                        streamed_logprobs.setdefault(event_data.item_id, []).extend(
+                            _final_logprob_from_delta(value) for value in event_data.logprobs
+                        )
                     if getattr(event_data, "type", None) == "response.output_item.done":
                         streamed_output.append(event_data.item)
                     yield event_data
             except GenerationError as e:
                 error_json = self._convert_generation_error_to_streaming_response(e)
+                error = json.loads(error_json)["error"]
                 yield _increment_sequence_number_and_return(
-                    TypeAdapter(StreamingResponsesResponse).validate_json(error_json)
+                    await failed_event(error["message"], "generation_error")
                 )
                 return
 
@@ -1389,25 +1572,21 @@ class OpenAIServingResponses(GenerateBaseServing):
                 request_metadata,
                 created_time=created_time,
             )
+            if isinstance(final_response, ErrorResponse):
+                yield _increment_sequence_number_and_return(
+                    await failed_event(final_response.error.message, "final_generation_error")
+                )
+                return
             if not self.use_harmony:
-                if [item.type for item in final_response.output] != [
-                    item.type for item in streamed_output
-                ]:
-                    message = "Stream and final response output items disagree"
-                    final_response.status = "failed"
-                    final_response.error = {"code": "server_error", "message": message}
+                try:
+                    final_response.output = _reconcile_streamed_output(
+                        final_response.output, streamed_output, streamed_logprobs,
+                    )
+                except _StreamReconciliationError as error:
                     yield _increment_sequence_number_and_return(
-                        ResponseErrorEvent(
-                            type="error", code="server_error", message=message,
-                            param=None, sequence_number=-1,
-                        )
+                        await failed_event(str(error), error.code, final_response)
                     )
                     return
-                # Preserve native metadata, including logprobs and item status.
-                for item, emitted in zip(final_response.output, streamed_output):
-                    item.id = emitted.id
-                    if item.type == "function_call":
-                        item.call_id = emitted.call_id
             incomplete = final_response.status == "incomplete"
             event_class = ResponseIncompleteEvent if incomplete else ResponseCompletedEvent
             yield _increment_sequence_number_and_return(

@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "id": "1017-r39-protocol-compat-v5",
+  "id": "1017-r39-protocol-compat-v6",
   "model": "DeepSeek-Flash",
-  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated. V4 adds OpenAI/Codex reasoning effort aliases on the native 1-100 scale (minimal=25, medium=63, xhigh=90), preserves native low/high/max and explicit thinking-off, and forwards validated Claude enabled-thinking token budgets to the native sampler. No encoder, GPU kernel, serving configuration or usage accounting replacement. V5 binds native final Responses item IDs and function call IDs to the emitted done events while retaining native output metadata, logprobs, arguments and item order; uses response.incomplete for output-limit termination and handles output-shape errors including background replay. Native usage and cache accounting remain unchanged.",
+  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated. V4 adds OpenAI/Codex reasoning effort aliases on the native 1-100 scale (minimal=25, medium=63, xhigh=90), preserves native low/high/max and explicit thinking-off, and forwards validated Claude enabled-thinking token budgets to the native sampler. No encoder, GPU kernel, serving configuration or usage accounting replacement. V6 preserves streamed item/call identities and native metadata, reconciles text-equivalent multiple thinking/content segments, and emits native response.failed with partial streamed output identities, usage and error details for actual failures. Length limits remain response.incomplete. No renderer, encoder, GPU kernel, usage accounting or access policy replacement.",
   "native_image_tag": "deepseek-v4.1-flash-1017-a100:20261018-r2",
   "native_image_id": "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
   "native_image_allowed_ids": [
@@ -44,7 +44,7 @@
       "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/openai/responses/serving.py",
       "overlay_path": "source/r39-overlay/vllm/entrypoints/openai/responses/serving.py",
       "base_sha256": "d9751fbfd5e73ad0fdda15087640caf1ecaaefb2ef26d87e81c3cd070655048d",
-      "patched_sha256": "6f9301993e3b840297a756993bb46822a783b8547e0652f4cabdb8e455f4e225"
+      "patched_sha256": "a7e8c060294966bad85c4cca260330a392a0cdb761c47a3096bf565126bd33f8"
     }
   ],
   "reference_sources": [

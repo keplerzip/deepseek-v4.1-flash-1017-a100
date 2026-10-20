@@ -1,16 +1,40 @@
 # Responses SSE 与 Codex 子代理
 
-V5 修复已在固定 R2 镜像和目标 A100 上复现的 Responses SSE 标识不一致：`response.output_item.added/done` 的 item ID 与最终 `response.completed.response.output` 不同。工具调用的 `call_id` 也存在同类问题。客户端按标识归并事件时可能因此无法正确关联最终输出。
+V6 保留流式 item / call ID 修复，并修正 V5 对合法多段思考输出的误拦截。模型、TP8 / C32 / 512K、DSpark k5、图文处理、8005、缓存用量字段及访问策略不变。
 
-修复直接作用于原生 Responses generator：只将原生最终 item 的 ID、工具 call ID 与已发送的 done item 对齐，保留原生最终对象、状态、logprobs、函数 namespace、参数和输出顺序。usage、缓存 token 计数及原有图文/思考转换沿用原逻辑。达到输出预算、最终状态为 incomplete 时发送 `response.incomplete`；后台流回放识别该终止事件。
+## V5 回归
 
-## 证据与边界
+同一受控输出在思考和回答之间多次切换时，增量 parser 产生四个 reasoning/message item，最终全量 parser 聚合为两个。V5 只按类型/数量匹配，因而发送通用 error 后关闭；V4 对同输出发送 completed。真实 Codex CLI 0.163.0 会忽略该通用 error，最后显示 `stream closed before response.completed`。
 
-目标 A100 在 V4 上的八项受控问候测试：JSON 四项通过；SSE 四项回答内容正确但协议检查失败，唯一失败类型为 `DONE_COMPLETED_ID_MISMATCH`。测试覆盖普通文本/任务信封、none/medium；这证明部署侧存在该缺陷，不单独证明它是实际 App 子代理异常的全部原因。
+八项独立问候请求没有覆盖此情况。故障也可在真正创建子代理、父代理收到创建及等待结果的受控流程中复现，不能把问候测试通过等同于子代理调用链通过。
 
-本地固定 R2 镜像的十二项回放使用真实 DeepSeek parser、Responses generator 与 HTTP SSE 序列化器，输入为合成 engine delta。原十项在未修复版本均复现标识漂移；扩展后的十二项在未修复版本均被检查拒绝，修复后全部通过。除多工具、namespace、思考过滤、长度上限、输出顺序、缓存 usage、存储与后台回放，还新增真实 logprobs 保留及输出形状不一致时的错误终止检查。这是 CPU 协议检查，没有加载权重或执行 GPU 推理。
+## V6 行为
 
-离线 V5 安装后会重启现有引擎，保留 TP8、C32、512K、DSpark k5、8005、DeepSeek-Flash 和原图文配置；模型文件未变时继续复用校验收据。Ready 后自动执行六项跨协议思考参数检查及相同八项真实 JSON/SSE 受控请求。任一请求或流检查失败，验收返回非零。输出报告位于 `runtime/responses-v5/live-stream.json`。
+正常一对一输出只绑定已发出的 item ID / call ID，保留原生最终状态、logprobs、函数 namespace、参数、缓存和其他元数据。分段不同但全部可见文本、思考文本和有序函数语义相同时，按已发出的分段顺序生成最终输出，保留可无损映射的原生元数据。
+
+真实引擎错误或无法无损对齐时发送 `response.failed`，包含实际已发出的 partial item ID、原生 usage 和明确错误原因。长度上限仍为 `response.incomplete`，不会为了避免客户端报错而伪造 completed。后台生产、存储及回放识别所有这些终止状态。错误日志只包含请求 ID、输出项数量和固定错误码，不记录模型正文、思考内容、工具参数或凭据。
+
+分段 logprobs 只有在实际 delta 列表与原生完整列表严格一致时才能无损切分；无法证明一致的请求返回明确失败，避免重复或丢弃概率数据。普通单段 logprobs 保留原生行为。带不可安全拆分的 annotations、summary 或未知内容类型也会明确失败。
+
+## 离线安装
+
+V6 增量支持精确的原 V4 或 V5 交付，使用原 R2 镜像，无需联网或新增宿主依赖。包内安装器先核对基线及源码，保存实际原版本，再重启加载已有本地权重；完整匹配的既有数值证据可复用，缺证仍走原门禁。回退恢复本次安装前的实际版本。原 V4 / V5 封存包不被改写。
+
+```bash
+cd /ai/services/deepseek-v4.1-flash-1017-a100
+tar -xzf DeepSeek-Flash-R3-Hotfix-20261020-v6.tar.gz
+bash DeepSeek-Flash-R3-Hotfix-20261020-v6/apply-and-start.sh
+```
+
+Ready 后自动执行六项跨协议思考参数检查及八项真实 JSON/SSE 受控请求。任一请求或流检查失败，验收返回非零。结果位于 `runtime/responses-v6/`；这些直连引擎检查不经过用户实际 New API 配置。
+
+## 验证范围
+
+固定 R2 的 25 组检查包含 23 个真实原生 parser / generator / HTTP SSE 序列化或明确故障注入场景，以及 2 组明确标记的 SDK 元数据 fixture。覆盖普通问候、多段思考、隐藏思考、长度限制、命名空间多函数、DSML 分片边界、logprobs、失败输出 ID、usage、存储和真实后台生产/回放。输入为合成 engine delta，没有加载权重或执行 GPU 推理。
+
+[脱敏调用链证据](validation/v6-subagent-fixtures.json) 记录真实 Codex CLI 0.163.0 的实际 spawn、子请求、wait 和父续接：同输入 V4 正常，V5 精确复现断流，V6 正常。V6 另核对父代理收到子代理实际最后答复。经新建隔离 New API `v1.0.0-rc.45` 的原生 Responses 渠道转发，同样观察到 V5 失败、V6 正常。模型输出均为合成 fixture，不读取用户现有网关配置或凭据，也不向外网发请求。
+
+真实 Codex CLI 的受控回放使用隔离网络、空配置及固定输出；子代理流程由客户端真正执行 spawn 和等待，模型回复仍为原生生成器的合成 fixture。它与目标模型推理、用户 Codex App / New API 完整链路是不同层级的证据。实际目标 App 仍需更新后复测，不声明任意模型任务、所有工具类型或所有网关配置均已通过。
 
 ## 手动复查
 
@@ -22,6 +46,6 @@ resolve_image
 image_python /package/tests/subagent_diagnostic.py --unix-socket /state/api.sock --output /state/subagent-live.json --require-pass
 ```
 
-只发送固定测试任务，报告不采集真实 App 会话或完整思考文本。`NO_FAILURE_OBSERVED` 仅表示这八项通过，`subagent_end_to_end` 仍为 `NOT_RUN`；更新后还需在 Codex App 中执行原本失败的子代理任务。
+只发送固定测试任务，不采集真实 App 会话或完整思考。`NO_FAILURE_OBSERVED` 只表示这八项通过；`subagent_end_to_end` 仍为 `NOT_RUN`。
 
-Codex 客户端的子代理调度与 API 服务的模型推理是两层能力。普通函数工具可由客户端负责调度；OpenAI 的服务端 `multi_agent` beta 属于另一套托管能力。本项目没有实现该托管功能，也未声称完整兼容 arbitrary-input custom tools 或专用 agent 消息类型。参考：[Codex 子代理配置](https://learn.chatgpt.com/docs/agent-configuration/subagents)、[Responses 托管 multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent)、[OpenAI 自定义工具](https://developers.openai.com/api/docs/guides/function-calling#custom-tools)。
+Codex 客户端的子代理调度与 API 服务的模型推理是两层能力。普通函数工具由客户端调度；本项目没有实现 OpenAI 托管 `multi_agent` beta，也未宣称完整支持 arbitrary-input custom tools 或专用 agent 消息类型。参考：[Codex 子代理配置](https://learn.chatgpt.com/docs/agent-configuration/subagents)、[Responses 托管 multi-agent](https://developers.openai.com/api/docs/guides/responses-multi-agent)、[OpenAI 自定义工具](https://developers.openai.com/api/docs/guides/function-calling#custom-tools)。

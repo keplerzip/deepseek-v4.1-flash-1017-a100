@@ -52,7 +52,7 @@ Docker 客户端可用 `http://host.docker.internal:8005/v1`，Linux 需配置 `
 
 V4 增加 [OpenAI / Codex / Claude 思考参数兼容](docs/REASONING.md)：OpenAI 的 `none/minimal/low/medium/high/xhigh/max` 均有明确映射，Claude 保留其五档 effort 与 enabled/adaptive/disabled 输入。`medium/xhigh` 不再因原生三档校验报错；显式关闭不会被自动标志反向开启，Claude enabled-thinking 的 token 预算传给原生采样器。
 
-V5 修复 [Responses 流式输出标识与终止事件](docs/RESPONSES-STREAMING.md)：added/done 与最终输出复用同一 item ID、工具 call ID 和顺序；输出达到上限使用 `response.incomplete`。这解决了已在 A100 受控测试中复现的协议缺陷，Codex App 子代理完整流程仍需更新后验收。
+[Responses 流式兼容说明](docs/RESPONSES-STREAMING.md) 记录 item / call ID 修复及 V5 的已知回归：多次思考与回答切换时，严格输出形状检查可能中止原本能结束的流。V6 在验证文本与工具语义一致后保留流式分段，并用标准失败事件保留真实错误原因。实际 Codex App 与 New API 完整链路仍需目标机验收。
 
 ## 部署
 
