@@ -54,6 +54,8 @@ V4 增加 [OpenAI / Codex / Claude 思考参数兼容](docs/REASONING.md)：Open
 
 [V7 Responses 流式兼容说明](docs/RESPONSES-STREAMING.md)：最小回移 vLLM 官方 PR #59307，并回移 PR #59324 的流式截断状态；撤掉 V6 的二次解析一致性门槛，最终响应复用本次已发送的 items。工具参数使用原生 invoke 完成时的转换，正文照常流式。真实 Codex CLI 与隔离 New API rc45 的六组固定输出子代理链路已通过；目标 A100 推理及用户实际 App 仍须安装后验收。原性能配置、缓存计数和多图输入模块保留。
 
+工具验收已移除不合理的模型 call_id 回显要求；协议层 ID 校验及答案 ack/count 配对保持严格。已安装 V7 可单独重跑修正验收，无需重启引擎。
+
 ## 部署
 
 详细步骤见 [离线部署与验收](DEPLOY.md)。以下命令假设已导入 [固定运行镜像](manifests/runtime.env) 并已准备完整官方模型目录：

@@ -36,13 +36,19 @@ bash DeepSeek-Flash-R3-Hotfix-20261020-v7/apply-and-start.sh --rollback
 
 仅应用并验证源码、暂不启动可用 --apply-only；该模式会停止服务，不能视为 Ready。历史封存包不修改。
 
+## 工具验收脚本修正
+
+原 V7 封存包的工具验收曾要求模型在答案中回显 opaque call_id。官方编码器只用此 ID 关联、排序工具结果，并不把它写入模型提示词，因此这个要求不成立。现已移除模型回显 ID 的要求；API/SSE 的 item ID、call_id、函数名和 namespace 检查仍保留，答案仍须严格匹配工具结果正文中的 ack 与整数 count。
+
+这项修正只涉及验收脚本，不修改引擎、编码器、缓存或图文配置。已安装用户可使用单独的 Tool-Check-Fix 包重跑验收，保持服务运行；原 V7 包及其 SHA256 不覆盖。修正后通过仍不等于用户实际 App 子代理全链路已签收，也不独立证明所有 renderer 归属路径。
+
 ## 验证范围
 
 原镜像断网 CPU 回归覆盖原图文/协议九项、思考兼容六十五项，以及流式 parser/generator/原生 SSE 序列化回归。流式测试包含 publisher tokenizer 派生的固定 token 分块、多段思考空白、隐藏思考、包装及重复参数、namespace、并行调用、零参数、logprobs、长度截断、明确错误注入、存储及后台回放。测试禁止流式路径调用第二次全文解析，并检查 done/final 字段及原生 call_id；合成输出不算模型推理。
 
 [脱敏子代理链路证据](validation/v7-subagent-fixtures.json) 记录真实 Codex CLI 0.163.0 的 spawn → 子请求 → wait → 父续接。直连与新建隔离 New API v1.0.0-rc.45 各跑三组：思考边界换行、arguments 包装、input 包装。六组均通过，父代理收到子代理最终确认。模型输出由固定 fixture 提供，未访问用户网关配置或真实会话。CLI 回传子代理最后一段 assistant 内容，不代表回传所有中间段。
 
-Ready 后自动执行六项跨协议思考检查、八项问候 JSON/SSE 检查，以及十二组真实模型工具往返：普通单函数和 namespace 并行函数，none/medium/xhigh，JSON/SSE；参数含字符串与整数，工具结果反序回传，第二轮严格检查 call_id、ack、count 对应。工具仅在本地模拟，不执行命令或写业务文件。任意思考和正文不作为工具验收报告保存。
+Ready 后自动执行六项跨协议思考检查、八项问候 JSON/SSE 检查，以及十二组真实模型工具往返：普通单函数和 namespace 并行函数，none/medium/xhigh，JSON/SSE；参数含字符串与整数，工具结果反序回传，协议层检查 call_id，第二轮正文只严格检查模型可见的 ack/count 配对。工具仅在本地模拟，不执行命令或写业务文件。任意思考和正文不作为工具验收报告保存。
 
 目标 A100 的真实工具验收由安装脚本执行，构建机没有 GPU。用户实际 Codex App → 现有 New API → A100 全链路仍需复测，不能因 CPU 或 CLI fixture 通过就标为已签收。此次没有承诺任意任务、全部网关设置或所有工具类型兼容。
 

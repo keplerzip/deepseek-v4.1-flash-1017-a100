@@ -1,5 +1,8 @@
 """Fixed, read-only Responses tool round trips against the existing engine.
 
+Opaque call IDs remain checked at the API/SSE layer, not echoed by the model.
+The answer check covers visible ack/count tuples, not independent proof of
+renderer association or actual App subagent acceptance.
 Only locally simulated tools are used. No files, commands, client conversations
 or credentials are exposed to the model. This does not create a Codex App agent.
 """
@@ -189,7 +192,8 @@ def one_case(socket_path, timeout, *, stream, effort, namespaced, parallel):
     name = ('namespace' if namespaced else 'function') + ('-parallel' if parallel else '-single')
     name += '-' + effort + ('-sse' if stream else '-json')
     row = {'name': name, 'status': 'FAIL', 'controlled_test': True,
-           'actual_codex_subagent': 'NOT_RUN'}
+           'actual_codex_subagent': 'NOT_RUN',
+           'model_call_id_echo_required': False, 'api_call_id_contract_retained': True}
     started = time.monotonic()
     try:
         user = '请仅调用工具 ' + ('functions.' if namespaced else '') + NAME
@@ -203,7 +207,9 @@ def one_case(socket_path, timeout, *, stream, effort, namespaced, parallel):
                    'stream': stream, 'store': False, 'reasoning': {'effort': effort},
                    'max_output_tokens': 2048 if effort != 'none' else 512}
         first, first_evidence = request(socket_path, payload, timeout)
+        row['first'] = first_evidence
         calls = validate_calls(first.get('output', []), namespaced=namespaced, parallel=parallel)
+        row['first_tool_arguments'] = 'PASS'
         # Simulate a harmless fixed tool result locally. The model cannot execute
         # anything through this probe. Bind every result to the actual call_id.
         results = []
@@ -211,25 +217,26 @@ def one_case(socket_path, timeout, *, stream, effort, namespaced, parallel):
         for item in reversed(calls):
             value = json.loads(item['arguments'])
             marker = 'ACK_' + value['task']
-            expected_acks.append({'call_id': item['call_id'], 'ack': marker, 'count': value['count']})
+            expected_acks.append({'ack': marker, 'count': value['count']})
             results.append({'type': 'function_call_output', 'call_id': item['call_id'],
                             'output': json.dumps({'ack': marker, 'count': value['count']})})
         followup = dict(payload)
         followup['input'] = history + first['output'] + results + [{
             'role': 'user', 'content': '工具均完成。不再调用工具。最终正文仅输出一个JSON数组（无代码块或解释）；'
-            '每个元素为 {"call_id":"对应工具调用的call_id","ack":"该工具返回的ack","count":该工具返回的整数count}，不得交换归属。'}]
+            '每个元素仅为 {"ack":"该工具返回的ack","count":该工具返回的整数count}，不得交换这两个字段的对应关系。'}]
         followup['tool_choice'] = 'none'
         second, second_evidence = request(socket_path, followup, timeout)
+        row['second'] = second_evidence
         if any(item.get('type') == 'function_call' for item in second.get('output', [])):
             raise ValueError('Unexpected extra tool call after tool_choice none')
         text = ''.join(text_from_item(item) for item in second.get('output', []))
         acknowledgements = json.loads(text)
         if (not isinstance(acknowledgements, list)
-                or any(not isinstance(item, dict) or set(item) != {'call_id', 'ack', 'count'}
+                or any(not isinstance(item, dict) or set(item) != {'ack', 'count'}
                        or type(item['count']) is not int for item in acknowledgements)
-                or sorted(acknowledgements, key=lambda item: str(item['call_id']))
-                   != sorted(expected_acks, key=lambda item: item['call_id'])):
-            raise ValueError('Final acknowledgement call_id, ack or typed count association differs')
+                or sorted(acknowledgements, key=lambda item: str(item['ack']))
+                   != sorted(expected_acks, key=lambda item: item['ack'])):
+            raise ValueError('Final acknowledgement ack or typed count association differs')
         # Persist only fixed task metadata, protocol IDs, token counts and final
         # answer hash. Reasoning text and arbitrary generated output stay in RAM.
         row.update(status='PASS', first=first_evidence, second=second_evidence,
@@ -251,7 +258,7 @@ def main():
     if not 1 <= args.timeout <= 600:
         parser.error('timeout must be within 1..600 seconds')
     report = {'schema': 1, 'suite': 'v7-fixed-live-tool-round-trips', 'status': 'RUNNING',
-              'scope': 'Fixed real model function and namespace calls with typed parameters, reversed results and a second model turn.',
+              'scope': 'Fixed function and namespace calls with typed parameters and reversed results; API call IDs are checked separately from model-visible ack/count tuples. This is not independent renderer association or actual App acceptance.',
               'model': MODEL, 'new_host_dependencies': [], 'external_network_used': False,
               'actual_codex_app_subagent': 'NOT_RUN', 'newapi_gateway': 'NOT_RUN',
               'captures_real_client_conversations': False, 'checks': []}

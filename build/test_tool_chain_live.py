@@ -40,8 +40,8 @@ def final(output):
 
 
 def answer(parallel=True):
- rows=[{'call_id':'call_first','ack':'ACK_V7_FIRST','count':2}]
- if parallel:rows.append({'call_id':'call_second','ack':'ACK_V7_SECOND','count':3})
+ rows=[{'ack':'ACK_V7_FIRST','count':2}]
+ if parallel:rows.append({'ack':'ACK_V7_SECOND','count':3})
  return json.dumps(rows)
 
 
@@ -126,10 +126,17 @@ class ProbeTests(unittest.TestCase):
   wrong=json.loads(answer());wrong[0]['count']=True
   row=self.do_case(second=final([text_item(json.dumps(wrong))]))
   self.assertEqual(row['status'],'FAIL',row)
- def test_wrong_ack_call_id_pairing_is_not_accepted(self):
-  wrong=json.loads(answer());wrong[0]['call_id'],wrong[1]['call_id']='call_second','call_first'
-  row=self.do_case(second=final([text_item(json.dumps(wrong))]))
-  self.assertEqual(row['status'],'FAIL',row)
+ def test_model_does_not_need_to_echo_opaque_api_call_ids(self):
+  row=self.do_case()
+  self.assertEqual(row['status'],'PASS',row)
+  self.assertFalse(row['model_call_id_echo_required'])
+  self.assertTrue(row['api_call_id_contract_retained'])
+  request=HTTP.sent[-1]['body']
+  results=[item for item in request['input'] if item.get('type')=='function_call_output']
+  self.assertTrue(all(item.get('call_id') for item in results))
+  self.assertTrue(all(set(json.loads(item['output']))=={'ack','count'} for item in results))
+  self.assertNotIn('call_id',request['input'][-1]['content'])
+
  def test_wrong_marker_is_rejected(self):
   row=self.do_case(second=final([text_item('ACK_V7_FIRST only')]))
   self.assertEqual(row['status'],'FAIL')
