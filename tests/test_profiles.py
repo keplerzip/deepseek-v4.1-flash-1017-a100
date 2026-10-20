@@ -462,6 +462,11 @@ image_python() {
     printf 'protocol-compat\n' >> "$STATE_DIR/startup-events"
     return "${TEST_PROTOCOL_STATUS:-0}"
   fi
+  if [[ "$1" == /package/tests/check_responses_stream_identity.py ]]; then
+    [[ "$2" == --project && "$3" == /package && "$4" == --output && "$5" == /state/responses-stream-identity.json && "$#" == 5 ]] || return 24
+    printf 'responses-stream-identity\n' >> "$STATE_DIR/startup-events"
+    return "${TEST_STREAM_IDENTITY_STATUS:-0}"
+  fi
   [[ "$1" == /opt/dsv411017/scripts/profiles.py || "$1" == /opt/dsv411017/scripts/runtime.py ]] || return 24
   case "$2" in
     prepare|env|check) return 0 ;;
@@ -543,7 +548,7 @@ else:raise AssertionError('Unexpected synthetic Docker operation: '+repr(args))
                 gates = (project / "runtime/gates").read_text().splitlines()
                 self.assertEqual(gates, ["kernels", "tp-ar", "context-graph"] if decision == "required" else ["kernels"])
                 events = (project / "runtime/startup-events").read_text().splitlines()
-                self.assertEqual(events, ["protocol-compat", "hardware-probe", "engine-started", "network-proof",
+                self.assertEqual(events, ["protocol-compat", "responses-stream-identity", "hardware-probe", "engine-started", "network-proof",
                                           "capacity", "smoke", "capacity-after-smoke", "frontend", "api-local",
                                           "api-docker", "engine-log"])
                 self.assertEqual((project / "runtime/ready.signature").read_text(), "fixture-signature\n")
@@ -551,6 +556,13 @@ else:raise AssertionError('Unexpected synthetic Docker operation: '+repr(args))
     def test_protocol_compatibility_failure_prevents_any_engine_launch(self):
         result, project = self.run_startup_fixture("required", {"TEST_PROTOCOL_STATUS": "17"})
         self.assertEqual(result.returncode, 17, result.stdout + result.stderr)
+        self.assertFalse((project / "runtime/engine-started").exists())
+        self.assertFalse((project / "runtime/gates").exists())
+        self.assertFalse((project / "runtime/ready.signature").exists())
+
+    def test_stream_identity_failure_prevents_any_engine_launch(self):
+        result, project = self.run_startup_fixture("required", {"TEST_STREAM_IDENTITY_STATUS": "18"})
+        self.assertEqual(result.returncode, 18, result.stdout + result.stderr)
         self.assertFalse((project / "runtime/engine-started").exists())
         self.assertFalse((project / "runtime/gates").exists())
         self.assertFalse((project / "runtime/ready.signature").exists())

@@ -1,6 +1,6 @@
 """CPU-only checks against actual installed native vLLM protocol modules.
 
-Run in the pinned R2 image with the four reviewed overlays read-only mounted.
+Run in the pinned R2 image with the five reviewed overlays read-only mounted.
 This checks request conversion, image decoding and prompt-prefix preservation;
 it never creates an engine, loads weights, or measures actual cache hits.
 """
@@ -61,7 +61,7 @@ class Checker:
             result = dict(row, installed_sha256=actual)
             self.report['files'].append(result)
             rows.append(result)
-        require(len(rows) == 4, 'Exactly four reviewed overlays are required')
+        require(len(rows) == 5, 'Exactly five reviewed overlays are required')
         require(all(row['installed_sha256'] == row['patched_sha256'] for row in rows),
                 'Installed files are not the exact reviewed protocol overlays')
         return {'installed_hashes_verified': len(rows)}

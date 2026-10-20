@@ -7,7 +7,7 @@ prepare_r39_overlay() {
   R39_OVERLAY_ARGS=()
   while IFS= read -r relative || [[ -n "$relative" ]]; do
     case "$relative" in
-      vllm/tokenizers/deepseek_v41.py|vllm/entrypoints/anthropic/serving.py|vllm/entrypoints/openai/responses/protocol.py|dsv41_guard.py) ;;
+      vllm/tokenizers/deepseek_v41.py|vllm/entrypoints/anthropic/serving.py|vllm/entrypoints/openai/responses/protocol.py|vllm/entrypoints/openai/responses/serving.py|dsv41_guard.py) ;;
       *) printf 'Unexpected protocol overlay path: %s\n' "$relative" >&2; return 1 ;;
     esac
     case "$seen" in
@@ -19,5 +19,5 @@ prepare_r39_overlay() {
     R39_OVERLAY_ARGS+=(-v "$project_root/source/r39-overlay/$relative:/usr/local/lib/python3.12/dist-packages/$relative:ro")
     count=$((count + 1))
   done < "$list"
-  [[ "$count" == 4 ]] || { printf 'Protocol overlay must contain all four pinned files.\n' >&2; return 1; }
+  [[ "$count" == 5 ]] || { printf 'Protocol overlay must contain all five pinned files.\n' >&2; return 1; }
 }

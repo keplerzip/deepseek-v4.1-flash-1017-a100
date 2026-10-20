@@ -10,6 +10,7 @@ image_python /opt/dsv411017/scripts/profiles.py env > "$STATE_DIR/profile-env.nu
 mapfile -d '' -t PROFILE_ENV < "$STATE_DIR/profile-env.nul"
 image_python /opt/dsv411017/scripts/runtime.py check
 image_python /package/tests/check_r39_protocols.py --output /state/r39-protocol-compat.json
+image_python /package/tests/check_responses_stream_identity.py --project /package --output /state/responses-stream-identity.json
 if docker inspect "$ENGINE" >/dev/null 2>&1; then
   owned "$ENGINE" || fail 'Engine name belongs to another deployment'
   if engine_health; then

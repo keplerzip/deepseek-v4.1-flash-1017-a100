@@ -25,8 +25,8 @@ def main():
                "-v", str(ROOT) + ":/package:ro", "-v", str(output) + ":/audit-output"]
     hashes = {}
     rows = manifest["files"]
-    if len(rows) != 4:
-        raise RuntimeError("Exactly four reviewed source overlays are required")
+    if len(rows) != 5:
+        raise RuntimeError("Exactly five reviewed source overlays are required")
     for row in rows:
         source = ROOT / row["overlay_path"]
         if source.is_symlink() or not source.is_file():
