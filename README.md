@@ -50,6 +50,8 @@ Docker 客户端可用 `http://host.docker.internal:8005/v1`，Linux 需配置 `
 
 原生多模态范围是文字和图片输入、文字输出。图片使用内联 data URI；Codex 通用媒体类型下的 PNG/JPEG 先检查 base64 和图片签名。工具结果图片保留调用 ID 关联，Responses 省略图片 detail 时默认 auto，Messages 保留尾 system 的多轮前缀。
 
+V4 增加 [OpenAI / Codex / Claude 思考参数兼容](docs/REASONING.md)：OpenAI 的 `none/minimal/low/medium/high/xhigh/max` 均有明确映射，Claude 保留其五档 effort 与 enabled/adaptive/disabled 输入。`medium/xhigh` 不再因原生三档校验报错；显式关闭不会被自动标志反向开启，Claude enabled-thinking 的 token 预算传给原生采样器。
+
 ## 部署
 
 详细步骤见 [离线部署与验收](DEPLOY.md)。以下命令假设已导入 [固定运行镜像](manifests/runtime.env) 并已准备完整官方模型目录：

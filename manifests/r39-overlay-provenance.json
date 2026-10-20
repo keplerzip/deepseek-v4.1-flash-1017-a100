@@ -1,8 +1,8 @@
 {
   "schema": 1,
-  "id": "1017-r39-protocol-compat-v2",
+  "id": "1017-r39-protocol-compat-v4",
   "model": "DeepSeek-Flash",
-  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated.",
+  "scope": "Focused protocol backports only: keep inline system turns for official 1017 encoder; preserve tool-result image/call-ID binding; default omitted Responses image detail to auto. No renderer/encoder/kernel/usage-counter replacement. Offline guard additionally accepts strict-base64 PNG/JPEG signatures under Codex application/octet-stream; arbitrary binary and all remote/file URLs remain denied. Guard does not misclassify tool-use business input or JSON-schema parameter/example objects as media; actual tool-result/Responses image payloads remain validated. V4 adds OpenAI/Codex reasoning effort aliases on the native 1-100 scale (minimal=25, medium=63, xhigh=90), preserves native low/high/max and explicit thinking-off, and forwards validated Claude enabled-thinking token budgets to the native sampler. No encoder, GPU kernel, serving configuration or usage accounting replacement.",
   "native_image_tag": "deepseek-v4.1-flash-1017-a100:20261018-r2",
   "native_image_id": "sha256:a63405a72ce202bb8347f17fc2432be0df484b794fba0224fd210b6daff004f6",
   "native_image_allowed_ids": [
@@ -16,14 +16,14 @@
       "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/tokenizers/deepseek_v41.py",
       "overlay_path": "source/r39-overlay/vllm/tokenizers/deepseek_v41.py",
       "base_sha256": "ec2645dc38f2ba5a2997ab8e41df4295cf9f50a8a32106fc3f82597f51ec2fff",
-      "patched_sha256": "f4fe7acbd32ce7e2122a02bab3cfaf5dc04446d2a89907a46045b8c9d28c121e"
+      "patched_sha256": "946e8f7c82aba8867f13a555af65499c4d270c9fd070e5724ba8c4deeb1ad106"
     },
     {
       "path": "vllm/entrypoints/anthropic/serving.py",
       "site_packages_path": "/usr/local/lib/python3.12/dist-packages/vllm/entrypoints/anthropic/serving.py",
       "overlay_path": "source/r39-overlay/vllm/entrypoints/anthropic/serving.py",
       "base_sha256": "9d495a052227537bc698956f384e4caf861f942407481a53ecb8f93fbb82f657",
-      "patched_sha256": "f1a862299698f163e824fd5793d3f587e28b7cd98d4189a83b8b4141f3d32b3e"
+      "patched_sha256": "9e140c2c9196b6b70da601a6690c7583409b025e3dd9c93402dd5f0161bc28bb"
     },
     {
       "path": "vllm/entrypoints/openai/responses/protocol.py",
@@ -37,7 +37,7 @@
       "site_packages_path": "/usr/local/lib/python3.12/dist-packages/dsv41_guard.py",
       "overlay_path": "source/r39-overlay/dsv41_guard.py",
       "base_sha256": "dd4f8d97b0288890e215039829654111bf20e06250fc816390b63437127a5545",
-      "patched_sha256": "d2e3c93192743ff6b7fff19a4c1d5abf3db179b2782095b2550f32291fb89602"
+      "patched_sha256": "5917aaac0806acb5c828b34b7b95b54f3da672445f36576c6b1eb7dc0b706f09"
     }
   ],
   "reference_sources": [

@@ -17,6 +17,38 @@ from .hf import HfTokenizer, get_cached_tokenizer
 from .protocol import TokenizerLike
 
 
+# Compatibility policy, expressed on the official encoder's 1--100 scale.
+# Preserve its native low=50, high=75 and max=100 without changing the encoder.
+COMPAT_REASONING_EFFORT_MAPPINGS = {"minimal": 25, "medium": 63, "xhigh": 90}
+
+
+def normalize_reasoning_kwargs(kwargs: dict[str, Any]) -> tuple[bool, str | int]:
+    """Resolve client effort names and explicit thinking flags without mutation."""
+    if "thinking" in kwargs:
+        thinking = bool(kwargs["thinking"])
+    elif "enable_thinking" in kwargs:
+        thinking = bool(kwargs["enable_thinking"])
+    else:
+        thinking = True
+    effort = kwargs.get("reasoning_effort")
+    if effort == "none":
+        return False, "high"
+    if effort is None:
+        effort = "high"
+    if isinstance(effort, str):
+        effort = COMPAT_REASONING_EFFORT_MAPPINGS.get(effort, effort)
+    if not (
+        (type(effort) is int and 1 <= effort <= 100)
+        or (isinstance(effort, str) and effort in REASONING_EFFORT_MAPPINGS)
+    ):
+        raise ValueError(
+            "DeepSeek V4.1 reasoning_effort must be none, minimal, low, medium, "
+            "high, xhigh, max, or an integer within [1, 100] "
+            "in chat_template_kwargs"
+        )
+    return thinking, effort
+
+
 def _normalize_messages(
     messages: list[ChatCompletionMessageParam],
 ) -> list[dict[str, Any]]:
@@ -75,23 +107,7 @@ def get_deepseek_v41_tokenizer(tokenizer: HfTokenizer) -> HfTokenizer:
                     conversation.insert(0, system)
                 system["tools"] = tools
 
-            thinking = bool(kwargs.get("thinking") or kwargs.get("enable_thinking"))
-            if "thinking" not in kwargs and "enable_thinking" not in kwargs:
-                thinking = True
-            effort = kwargs.get("reasoning_effort")
-            if effort == "none":
-                thinking = False
-                effort = None
-            if effort is None:
-                effort = "high"
-            if not (
-                (type(effort) is int and 1 <= effort <= 100)
-                or (isinstance(effort, str) and effort in REASONING_EFFORT_MAPPINGS)
-            ):
-                raise ValueError(
-                    "DeepSeek V4.1 reasoning_effort must be low, high, max, "
-                    "or an integer within [1, 100] in chat_template_kwargs"
-                )
+            thinking, effort = normalize_reasoning_kwargs(kwargs)
 
             prompt = encode_messages(
                 conversation,

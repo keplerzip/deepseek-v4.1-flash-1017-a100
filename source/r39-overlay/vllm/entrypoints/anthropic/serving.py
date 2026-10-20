@@ -503,6 +503,16 @@ class AnthropicServingMessages(OpenAIServingChat):
                 chat_template_kwargs=chat_template_kwargs,
             )
 
+        thinking_budget = None
+        if anthropic_request.thinking is not None and anthropic_request.thinking.type == "enabled":
+            thinking_enabled = bool(chat_template_kwargs.get(
+                "thinking", chat_template_kwargs.get("enable_thinking", False)))
+            output_config = anthropic_request.output_config
+            effort = (output_config.effort if output_config and output_config.effort is not None
+                      else chat_template_kwargs.get("reasoning_effort"))
+            if thinking_enabled and effort != "none":
+                thinking_budget = anthropic_request.thinking.budget_tokens
+
         return ChatCompletionRequest(
             model=anthropic_request.model,
             messages=openai_messages,
@@ -517,6 +527,9 @@ class AnthropicServingMessages(OpenAIServingChat):
             ec_transfer_params=anthropic_request.ec_transfer_params,
             vllm_xargs=anthropic_request.vllm_xargs,
             chat_template_kwargs=chat_template_kwargs,
+            # Effort is a relative prompt strength, not a token count. Keep
+            # legacy Claude budgets on the engine's native sampling path.
+            thinking_token_budget=thinking_budget,
         )
 
     @classmethod

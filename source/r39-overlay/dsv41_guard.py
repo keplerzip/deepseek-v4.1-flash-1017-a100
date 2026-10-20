@@ -92,6 +92,24 @@ def check_media(value):
             check_media(entry)
 
 
+def validate_thinking_budget(payload, path):
+    """Validate Claude's token budget before Pydantic can coerce JSON types."""
+    if path not in {'/v1/messages', '/v1/messages/count_tokens'}:
+        return
+    thinking = payload.get('thinking')
+    if not isinstance(thinking, dict) or 'budget_tokens' not in thinking:
+        return
+    budget = thinking['budget_tokens']
+    if type(budget) is not int or budget <= 0:
+        raise ValueError('thinking.budget_tokens must be a positive integer')
+    maximum = payload.get('max_tokens')
+    if thinking.get('type') == 'enabled' and (path == '/v1/messages' or 'max_tokens' in payload):
+        if type(maximum) is not int or maximum <= 0:
+            raise ValueError('max_tokens must be a positive integer when thinking.budget_tokens is set')
+        if budget >= maximum:
+            raise ValueError('thinking.budget_tokens must be less than max_tokens')
+
+
 class OfflineGuard:
     def __init__(self, app):
         self.app = app
@@ -138,6 +156,7 @@ class OfflineGuard:
                     raise ValueError('Request body must be a JSON object')
                 if payload.get('model', MODEL) != MODEL:
                     raise ValueError('The only served model is '+MODEL)
+                validate_thinking_budget(payload, path)
                 check_media(payload)
                 if path in {'/v1/chat/completions', '/v1/responses', '/v1/messages'}:
                     size = int(os.environ.get('DSV41_DP_SIZE', '1'))
